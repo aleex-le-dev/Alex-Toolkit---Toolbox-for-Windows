@@ -1,13 +1,15 @@
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using Microsoft.Win32;
 using ScriptsWindows.Core;
 
 namespace ScriptsWindows.Views.Controls;
 
-public partial class WifiReportDialog : Window
+public partial class WifiReportDialog : UserControl
 {
+    private bool _booted;
     private readonly Action<string> _onOutput;
     private readonly CancellationToken _ct;
 
@@ -21,7 +23,7 @@ public partial class WifiReportDialog : Window
         _onOutput = onOutput;
         _ct = ct;
 
-        Loaded += async (_, _) => await LoadOrGenerateReportAsync();
+        Loaded += async (_, _) => { if (_booted) return; _booted = true; await LoadOrGenerateReportAsync(); };
     }
 
     private async Task LoadOrGenerateReportAsync(bool forceNew = false)
@@ -177,5 +179,5 @@ public partial class WifiReportDialog : Window
         }
     }
 
-    private void BtnClose_Click(object sender, RoutedEventArgs e) => Close();
+    private void BtnClose_Click(object sender, RoutedEventArgs e) => Window.GetWindow(this)?.Close();
 }

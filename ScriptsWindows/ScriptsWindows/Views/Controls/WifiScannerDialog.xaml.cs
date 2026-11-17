@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using ScriptsWindows.Core;
 
@@ -34,8 +35,9 @@ public class WifiNetworkItem
     public Visibility TagVisibility => string.IsNullOrWhiteSpace(AuthShort) ? Visibility.Collapsed : Visibility.Visible;
 }
 
-public partial class WifiScannerDialog : Window
+public partial class WifiScannerDialog : UserControl
 {
+    private bool _booted;
     private readonly Action<string> _onOutput;
     private readonly CancellationToken _ct;
     private readonly ObservableCollection<WifiNetworkItem> _networks = new();
@@ -47,7 +49,7 @@ public partial class WifiScannerDialog : Window
         _ct = ct;
         ItemsWifiList.ItemsSource = _networks;
 
-        Loaded += async (_, _) => await ScanWifiAsync();
+        Loaded += async (_, _) => { if (_booted) return; _booted = true; await ScanWifiAsync(); };
     }
 
     private async Task ScanWifiAsync()
@@ -160,5 +162,5 @@ $list | Sort-Object SignalPercent -Descending | ConvertTo-Json -Compress
         await ScanWifiAsync();
     }
 
-    private void BtnClose_Click(object sender, RoutedEventArgs e) => Close();
+    private void BtnClose_Click(object sender, RoutedEventArgs e) => Window.GetWindow(this)?.Close();
 }

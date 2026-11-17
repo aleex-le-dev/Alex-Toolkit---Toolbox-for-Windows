@@ -27,8 +27,9 @@ public class TcpConnectionItem
     };
 }
 
-public partial class TcpConnectionsDialog : Window
+public partial class TcpConnectionsDialog : UserControl
 {
+    private bool _booted;
     private readonly Action<string> _onOutput;
     private readonly CancellationToken _ct;
 
@@ -42,7 +43,7 @@ public partial class TcpConnectionsDialog : Window
         _ct = ct;
         ItemsTcpList.ItemsSource = _filteredConnections;
 
-        Loaded += async (_, _) => await LoadConnectionsAsync();
+        Loaded += async (_, _) => { if (_booted) return; _booted = true; await LoadConnectionsAsync(); };
     }
 
     private async Task LoadConnectionsAsync()
@@ -154,5 +155,5 @@ $list | ConvertTo-Json -Compress
         await LoadConnectionsAsync();
     }
 
-    private void BtnClose_Click(object sender, RoutedEventArgs e) => Close();
+    private void BtnClose_Click(object sender, RoutedEventArgs e) => Window.GetWindow(this)?.Close();
 }

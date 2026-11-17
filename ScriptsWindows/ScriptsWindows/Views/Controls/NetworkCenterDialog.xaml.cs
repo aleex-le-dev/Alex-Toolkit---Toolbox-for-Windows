@@ -8,10 +8,11 @@ using ScriptsWindows.Services;
 
 namespace ScriptsWindows.Views.Controls;
 
-public partial class NetworkCenterDialog : Window
+public partial class NetworkCenterDialog : UserControl
 {
     private readonly Action<string> _onOutput;
     private readonly CancellationToken _ct;
+    private bool _booted;
 
     private readonly SolidColorBrush _brushTabActive = (SolidColorBrush)ThemeManager.GetBrush("Accent");    // #4F46E5
     private readonly SolidColorBrush _brushTabInactive = new(Colors.Transparent);
@@ -30,6 +31,8 @@ public partial class NetworkCenterDialog : Window
 
         Loaded += async (_, _) =>
         {
+            if (_booted) return;
+            _booted = true;
             // Indépendants : lancés en parallèle (2 processus PowerShell simultanés au lieu de successifs)
             await Task.WhenAll(LoadDiagnosticsAsync(), LoadDnsAdaptersAsync());
         };
@@ -443,5 +446,5 @@ $ip = (Get-NetIPAddress -InterfaceAlias $alias -AddressFamily IPv4 -ErrorAction 
         TxtFeedback.Text = "Connexions TCP actives affichées dans la console.";
     }
 
-    private void BtnClose_Click(object sender, RoutedEventArgs e) => Close();
+    private void BtnClose_Click(object sender, RoutedEventArgs e) => Window.GetWindow(this)?.Close();
 }

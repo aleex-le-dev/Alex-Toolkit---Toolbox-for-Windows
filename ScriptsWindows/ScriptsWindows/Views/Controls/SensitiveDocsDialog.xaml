@@ -217,11 +217,18 @@
                         <TextBlock Text="Rapport" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
-                <Button x:Name="BtnCopy" Style="{StaticResource ActionButton}" Margin="0,0,8,0" IsEnabled="False" Click="BtnCopy_Click"
-                        ToolTip="Copie les fichiers cochés dans un dossier (clé USB, disque externe), rangés par catégorie">
+                <Button x:Name="BtnExtract" Style="{StaticResource ActionButton}" Margin="0,0,8,0" IsEnabled="False" Click="BtnExtract_Click"
+                        ToolTip="Rassemble les valeurs sensibles EN CLAIR (mots de passe, IBAN, cartes, clés) des éléments affichés dans un seul fichier texte, à côté d'Alex Toolkit, pour les consulter sans ouvrir chaque fichier. Les documents et scans sont listés comme « à ouvrir ».">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE8C8;" FontFamily="{StaticResource FontIcon}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="TxtCopyLabel" Text="Copier dans un dossier" VerticalAlignment="Center"/>
+                        <TextBlock Text="&#xE762;" FontFamily="{StaticResource FontIcon}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Extraire" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnCopy" Style="{StaticResource ActionButton}" Margin="0,0,8,0" IsEnabled="False" Click="BtnCopy_Click"
+                        ToolTip="Copie automatiquement les fichiers (cochés, ou tous si rien n'est coché) dans un dossier à côté d'Alex Toolkit, rangés par niveau : secrets en clair, documents personnels, accès techniques. Le rapport est ajouté.">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8AB;" FontFamily="{StaticResource FontIcon}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtCopyLabel" Text="Transférer" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
                 <Button x:Name="BtnRecycle" Style="{StaticResource DangerActionButton}" Margin="0,0,8,0" IsEnabled="False" Click="BtnRecycle_Click"

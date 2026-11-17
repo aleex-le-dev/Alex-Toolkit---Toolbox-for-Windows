@@ -1,17 +1,13 @@
-<Window xmlns:ui="http://schemas.modernwpf.com/2019" ui:WindowHelper.UseModernWindowStyle="True" x:Class="ScriptsWindows.Views.Controls.TcpConnectionsDialog"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Moniteur des Connexions TCP Actives"
-        Width="780" Height="620"
-        WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
-        Background="{DynamicResource BgDeep}"
-        Foreground="{DynamicResource TextPrimary}"
-        WindowStyle="SingleBorderWindow">
+<UserControl xmlns:ui="http://schemas.modernwpf.com/2019"
+             x:Class="ScriptsWindows.Views.Controls.TcpConnectionsDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BgDeep}"
+             Foreground="{DynamicResource TextPrimary}">
 
-    <Window.Resources>
+    <UserControl.Resources>
 
-    </Window.Resources>
+    </UserControl.Resources>
 
     <Grid Margin="24">
         <Grid.RowDefinitions>
@@ -150,4 +146,4 @@
                     Style="{StaticResource ActionButton}" Click="BtnClose_Click"/>
         </Grid>
     </Grid>
-</Window>
+</UserControl>

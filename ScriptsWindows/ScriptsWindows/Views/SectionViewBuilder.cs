@@ -204,7 +204,6 @@ public static class SectionViewBuilder
         "REPARATION"       => ("🔧", "Dépannage & Réparation"),
         "RESEAU"           => ("🌐", "Internet & Réseau"),
         "SECRETS"          => ("🔑", "Mots de passe & Clés de licence"),
-        "NOUVEAUTE"        => ("✨", "Nouveautés & Innovations"),
         "SECURITE"         => ("🛡️", "Sécurité & Antivirus"),
         _                  => ("⚙️", string.IsNullOrWhiteSpace(category) ? "Général" : FormatFrenchTitle(category))
     };
@@ -221,7 +220,6 @@ public static class SectionViewBuilder
         "MATERIEL"         => "Ajustez la puissance du processeur (normal ou boost) et testez la rapidité du PC",
         "MISES_A_JOUR"     => "Recherchez et installez les dernières versions de tous vos programmes en un clic",
         "NETTOYAGE"        => "Libérez de l'espace disque en supprimant les fichiers temporaires et inutiles en toute sécurité",
-        "NOUVEAUTE"        => "Découvrez les derniers scripts et outils innovants : confidentialité, débloat, optimisation gaming et audit IA",
         "PERSONNALISATION" => "Simplifiez votre usage en retrouvant le clic droit classique ou le dossier Tous les Réglages",
         "REPARATION"       => "Réparez automatiquement les bugs de Windows, les blocages d'impression et les erreurs",
         "RESEAU"           => "Résolvez les coupures de connexion, optimisez votre Wi-Fi et inspectez vos équipements",

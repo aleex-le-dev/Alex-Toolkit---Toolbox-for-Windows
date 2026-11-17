@@ -249,16 +249,6 @@
                             </DockPanel>
                         </Button>
 
-                        <Button Tag="NOUVEAUTE" ToolTip="Nouveautés" Style="{StaticResource SidebarItem}" Click="NavCategory_Click" MouseEnter="NavCategory_MouseEnter">
-                            <DockPanel LastChildFill="True">
-                                <Border DockPanel.Dock="Right" Style="{StaticResource SidebarBadge}"><TextBlock x:Name="Badge_NOUVEAUTE" Text="0" Style="{StaticResource NavCount}" /></Border>
-                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="&#xEA80;" Style="{StaticResource SidebarIcon}" />
-                                    <TextBlock Text="Nouveautés" VerticalAlignment="Center" />
-                                </StackPanel>
-                            </DockPanel>
-                        </Button>
-
                         <Button Tag="PERSONNALISATION" ToolTip="Personnalisation de Windows" Style="{StaticResource SidebarItem}" Click="NavCategory_Click" MouseEnter="NavCategory_MouseEnter">
                             <DockPanel LastChildFill="True">
                                 <Border DockPanel.Dock="Right" Style="{StaticResource SidebarBadge}"><TextBlock x:Name="Badge_PERSONNALISATION" Text="0" Style="{StaticResource NavCount}" /></Border>

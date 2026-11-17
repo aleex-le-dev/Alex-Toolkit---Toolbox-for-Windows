@@ -140,7 +140,7 @@ public partial class SensitiveDocsDialog : Window
             EmptyText.Text = "Préparation…";
             TxtStatus.Text = "Analyse des dossiers personnels…";
             foreach (var t in new[] { TxtTotal, TxtCritical, TxtPersonal, TxtTechnical }) t.Text = "…";
-            BtnReport.IsEnabled = BtnCopy.IsEnabled = BtnRecycle.IsEnabled = false;
+            BtnReport.IsEnabled = BtnExtract.IsEnabled = BtnCopy.IsEnabled = BtnRecycle.IsEnabled = false;
         }
     }
 
@@ -195,7 +195,7 @@ public partial class SensitiveDocsDialog : Window
                 : "Modifiez la recherche, le niveau ou la catégorie.";
         }
 
-        BtnReport.IsEnabled = list.Count > 0;
+        BtnReport.IsEnabled = BtnExtract.IsEnabled = _all.Count > 0;
         UpdateSelectionState();
     }
 
@@ -215,8 +215,10 @@ public partial class SensitiveDocsDialog : Window
         int visibleChecked = visible.Count(i => i.IsChecked);
         ChkAll.IsChecked = visible.Count > 0 && visibleChecked == visible.Count ? true : visibleChecked == 0 ? false : null;
 
-        BtnCopy.IsEnabled = BtnRecycle.IsEnabled = checkedCount > 0;
-        TxtCopyLabel.Text = checkedCount > 0 ? $"Copier dans un dossier ({checkedCount})" : "Copier dans un dossier";
+        BtnRecycle.IsEnabled = checkedCount > 0;
+        // Transférer : la sélection si des éléments sont cochés, sinon tout
+        BtnCopy.IsEnabled = _all.Count > 0;
+        TxtCopyLabel.Text = checkedCount > 0 ? $"Transférer la sélection ({checkedCount})" : _all.Count > 0 ? $"Transférer tout ({_all.Count})" : "Transférer";
     }
 
     // ─── Actions ─────────────────────────────────────────────────────────
@@ -310,33 +312,92 @@ public partial class SensitiveDocsDialog : Window
         }
     }
 
+    /// <summary>
+    /// Transfert automatique : copie les éléments cochés (ou tous si rien n'est coché) dans un dossier créé
+    /// à la racine d'Alex Toolkit (à côté de l'exe, ex. sur la clé USB du technicien), rangé par niveau,
+    /// avec le rapport HTML. Aucun choix de dossier à faire.
+    /// </summary>
     private async void BtnCopy_Click(object sender, RoutedEventArgs e)
     {
-        var items = _all.Where(i => i.IsChecked).ToList();
+        var items = _all.Any(i => i.IsChecked) ? _all.Where(i => i.IsChecked).ToList() : _all.ToList();
         if (items.Count == 0) return;
 
-        var dlg = new OpenFolderDialog { Title = "Choisissez où copier les documents (clé USB, disque externe…)" };
-        if (dlg.ShowDialog(this) != true) return;
-
-        string target = Path.Combine(dlg.FolderName, $"Sauvegarde_Confidentiels_{DateTime.Now:yyyy-MM-dd_HHmm}");
-        SetActionsBusy(true, $"Copie de {items.Count} fichier(s)…");
+        string folderName = $"Documents_confidentiels_{Environment.MachineName}_{DateTime.Now:yyyy-MM-dd_HHmm}";
+        string target = Path.Combine(TransferRoot(), folderName);
+        int files = items.Select(i => i.Path).Distinct(StringComparer.OrdinalIgnoreCase).Count(File.Exists);
+        SetActionsBusy(true, $"Transfert de {files} fichier(s) vers {target}…");
         try
         {
             Directory.CreateDirectory(target);
-            var (copied, errors) = await Task.Run(() => SensitiveDataScanner.CopyFindings(items.Select(i => i.Finding), target, _ct));
-            TxtStatus.Text = $"{copied} fichier(s) copié(s) dans {target}" + (errors.Count > 0 ? $" — {errors.Count} erreur(s)" : "");
-            _onOutput($"[OK] {copied} document(s) confidentiel(s) copié(s) dans {target}");
-            foreach (var err in errors) _onOutput($"[!] Copie impossible : {err}");
+            var findings = items.Select(i => i.Finding).ToList();
+            var (copied, errors) = await Task.Run(() => SensitiveDataScanner.CopyFindings(findings, target, _ct));
+            File.WriteAllText(Path.Combine(target, "Rapport.html"), SensitiveDataScanner.BuildHtmlReport(findings), new UTF8Encoding(true));
+
+            TxtStatus.Text = $"{copied} fichier(s) transféré(s) dans {target}" + (errors.Count > 0 ? $" — {errors.Count} erreur(s)" : "");
+            _onOutput($"[OK] {copied} document(s) confidentiel(s) transféré(s) dans {target}");
+            foreach (var err in errors) _onOutput($"[!] Transfert impossible : {err}");
             if (errors.Count > 0)
-                AppMessageBox.Show(this, $"{copied} fichier(s) copié(s).\n\n{errors.Count} fichier(s) n'ont pas pu être copiés :\n" + string.Join("\n", errors.Take(8)) + (errors.Count > 8 ? "\n…" : ""),
-                    "Copie terminée avec des erreurs", MessageBoxButton.OK, MessageBoxImage.Warning);
+                AppMessageBox.Show(this, $"{copied} fichier(s) transféré(s).\n\n{errors.Count} fichier(s) n'ont pas pu être copiés (ouverts ou protégés) :\n" + string.Join("\n", errors.Take(8)) + (errors.Count > 8 ? "\n…" : ""),
+                    "Transfert terminé avec des erreurs", MessageBoxButton.OK, MessageBoxImage.Warning);
             Process.Start("explorer.exe", $"\"{target}\"");
         }
         catch (Exception ex)
         {
-            AppMessageBox.Show(this, $"La copie a échoué :\n\n{ex.Message}", "Copie", MessageBoxButton.OK, MessageBoxImage.Error);
+            AppMessageBox.Show(this, $"Le transfert a échoué :\n\n{ex.Message}", "Transférer", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally { SetActionsBusy(false, null); }
+    }
+
+    /// <summary>
+    /// Extraction : rassemble les valeurs sensibles en clair (éléments cochés, ou tous si rien n'est coché)
+    /// dans un seul fichier texte à côté d'Alex Toolkit, pour éviter d'ouvrir chaque fichier.
+    /// </summary>
+    private async void BtnExtract_Click(object sender, RoutedEventArgs e)
+    {
+        var items = _all.Any(i => i.IsChecked) ? _all.Where(i => i.IsChecked).ToList() : _all.ToList();
+        if (items.Count == 0) return;
+
+        if (AppMessageBox.Show(this,
+                $"Rassembler les informations sensibles de {items.Count} élément(s) dans un fichier texte ?\n\n" +
+                "Le fichier contiendra les mots de passe, IBAN, cartes et clés EN CLAIR, pour les consulter sans ouvrir chaque fichier. " +
+                "Les documents et scans y seront listés comme « à ouvrir manuellement ».\n\nGardez ce fichier en lieu sûr.",
+                "Extraire les informations", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+
+        string path = Path.Combine(TransferRoot(), $"Infos_confidentielles_{Environment.MachineName}_{DateTime.Now:yyyy-MM-dd_HHmm}.txt");
+        SetActionsBusy(true, "Extraction des informations en cours…");
+        try
+        {
+            var findings = items.Select(i => i.Finding).ToList();
+            var (text, nbExtracted, nbManual) = await Task.Run(() => SensitiveDataScanner.BuildExtraction(findings, _ct));
+            File.WriteAllText(path, text, new UTF8Encoding(true));
+
+            TxtStatus.Text = $"Extraction : {nbExtracted} fichier(s) exploités, {nbManual} à ouvrir — {path}";
+            _onOutput($"[OK] Extraction des informations confidentielles : {nbExtracted} fichier(s) exploités, {nbManual} à ouvrir — {path}");
+            Process.Start("notepad.exe", $"\"{path}\"");
+        }
+        catch (Exception ex)
+        {
+            AppMessageBox.Show(this, $"L'extraction a échoué :\n\n{ex.Message}", "Extraire", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally { SetActionsBusy(false, null); }
+    }
+
+    /// <summary>Dossier d'Alex Toolkit (à côté de l'exe) ; Bureau si l'emplacement est en lecture seule.</summary>
+    private static string TransferRoot()
+    {
+        string? dir = Path.GetDirectoryName(Environment.ProcessPath);
+        if (dir != null)
+        {
+            try
+            {
+                string probe = Path.Combine(dir, $".atk_write_{Guid.NewGuid():N}");
+                File.WriteAllText(probe, "");
+                File.Delete(probe);
+                return dir;
+            }
+            catch { /* CD, dossier protégé : repli sur le Bureau */ }
+        }
+        return Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
     }
 
     private async void BtnRecycle_Click(object sender, RoutedEventArgs e)
@@ -371,8 +432,10 @@ public partial class SensitiveDocsDialog : Window
     private void SetActionsBusy(bool busy, string? status)
     {
         BtnScan.IsEnabled = !busy;
-        BtnCopy.IsEnabled = BtnRecycle.IsEnabled = !busy && _all.Any(i => i.IsChecked);
+        BtnRecycle.IsEnabled = !busy && _all.Any(i => i.IsChecked);
+        BtnCopy.IsEnabled = !busy && _all.Count > 0;
         BtnReport.IsEnabled = !busy && Visible().Count > 0;
+        BtnExtract.IsEnabled = !busy && _all.Count > 0;
         if (status != null) TxtStatus.Text = status;
     }
 

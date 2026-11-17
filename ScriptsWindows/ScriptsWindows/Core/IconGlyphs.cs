@@ -26,7 +26,6 @@ public static class IconGlyphs
         "MATERIEL"         => "", // TVMonitor
         "MISES_A_JOUR"     => "", // Sync
         "NETTOYAGE"        => "", // Delete
-        "NOUVEAUTE"        => "", // Lightbulb
         "PERSONNALISATION" => "", // Color
         "REPARATION"       => "", // Repair
         "RESEAU"           => "", // Globe

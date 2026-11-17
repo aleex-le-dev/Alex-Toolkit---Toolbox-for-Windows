@@ -447,7 +447,7 @@ Get-Volume | Where-Object { $_.DriveLetter } | ForEach-Object {
     public static readonly string[] AllCategoryIds =
     {
         "APPLICATIONS", "DEMARRAGE", "DIAGNOSTIC", "DISQUE", "MATERIEL", "MISES_A_JOUR",
-        "NETTOYAGE", "NOUVEAUTE", "PERSONNALISATION", "REPARATION", "RESEAU", "SECRETS", "SECURITE"
+        "NETTOYAGE", "PERSONNALISATION", "REPARATION", "RESEAU", "SECRETS", "SECURITE"
     };
 
     /// <summary>

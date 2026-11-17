@@ -1,21 +1,17 @@
-<Window xmlns:ui="http://schemas.modernwpf.com/2019" ui:WindowHelper.UseModernWindowStyle="True" x:Class="ScriptsWindows.Views.Controls.NetworkCenterDialog"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Centre de Contrôle Réseau"
-        Width="750" Height="680"
-        WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
-        Background="{DynamicResource BgDeep}"
-        Foreground="{DynamicResource TextPrimary}"
-        WindowStyle="SingleBorderWindow">
+<UserControl xmlns:ui="http://schemas.modernwpf.com/2019"
+             x:Class="ScriptsWindows.Views.Controls.NetworkCenterDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BgDeep}"
+             Foreground="{DynamicResource TextPrimary}">
 
-    <Window.Resources>
+    <UserControl.Resources>
         <!-- Style des boutons génériques -->
 
         <!-- Style bouton principal bleu/indigo -->
 
         <!-- Style bouton d'action d'urgence / Reset -->
-    </Window.Resources>
+    </UserControl.Resources>
 
     <Grid Margin="24">
         <Grid.RowDefinitions>
@@ -500,4 +496,4 @@
                     Style="{StaticResource ActionButton}" Click="BtnClose_Click"/>
         </Grid>
     </Grid>
-</Window>
+</UserControl>

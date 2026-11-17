@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace ScriptsWindows.Views.Controls;
@@ -11,7 +12,7 @@ namespace ScriptsWindows.Views.Controls;
 /// Grand reset réseau en étapes visibles (cache DNS, ARP, Winsock, TCP/IP, bail DHCP) suivi d'un test de connexion,
 /// puis proposition de redémarrage.
 /// </summary>
-public partial class NetworkResetDialog : Window
+public partial class NetworkResetDialog : UserControl
 {
     private readonly Action<string> _onOutput;
     private readonly CancellationToken _ct;
@@ -34,12 +35,20 @@ public partial class NetworkResetDialog : Window
             new(7, "Tester la connexion", "Vérifie l'accès à Internet et la résolution des noms de sites.", null),
         };
         ListSteps.ItemsSource = _steps;
-        Closing += (_, e) =>
+        // Confirmation de fermeture pendant l'exécution gérée par la fenêtre-hôte à onglets (ToolTabsWindow).
+        Loaded += (_, _) =>
         {
-            if (_running && AppMessageBox.Show(this, "La réparation est en cours. Fermer quand même ?\n\nL'étape en cours se terminera en arrière-plan.",
-                    "Réparation en cours", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
-                e.Cancel = true;
+            if (Window.GetWindow(this) is { } host) host.Closing += Host_Closing;
+            Unloaded += (_, _) => { if (Window.GetWindow(this) is { } h) h.Closing -= Host_Closing; };
         };
+    }
+
+    private void Host_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        if (_running && AppMessageBox.Show(sender as Window,
+                "La réparation est en cours. Fermer quand même ?\n\nL'étape en cours se terminera en arrière-plan.",
+                "Réparation en cours", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+            e.Cancel = true;
     }
 
     private async void BtnStart_Click(object sender, RoutedEventArgs e)
@@ -135,13 +144,13 @@ public partial class NetworkResetDialog : Window
 
     private void BtnReboot_Click(object sender, RoutedEventArgs e)
     {
-        if (AppMessageBox.Show(this, "Redémarrer le PC maintenant ?\n\nEnregistrez vos documents ouverts avant de continuer.", "Redémarrer",
+        if (AppMessageBox.Show(Window.GetWindow(this), "Redémarrer le PC maintenant ?\n\nEnregistrez vos documents ouverts avant de continuer.", "Redémarrer",
                 MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
         try { Process.Start(new ProcessStartInfo("shutdown.exe", "/r /t 5 /c \"Alex Toolkit : fin de la réparation réseau\"") { CreateNoWindow = true, UseShellExecute = false }); }
-        catch (Exception ex) { AppMessageBox.Show(this, $"Redémarrage impossible :\n\n{ex.Message}", "Redémarrer", MessageBoxButton.OK, MessageBoxImage.Error); }
+        catch (Exception ex) { AppMessageBox.Show(Window.GetWindow(this), $"Redémarrage impossible :\n\n{ex.Message}", "Redémarrer", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
 
-    private void BtnClose_Click(object sender, RoutedEventArgs e) => Close();
+    private void BtnClose_Click(object sender, RoutedEventArgs e) => Window.GetWindow(this)?.Close();
 
     public sealed class Step : INotifyPropertyChanged
     {

@@ -71,7 +71,6 @@ public partial class MainWindow : Window
         Badge_MATERIEL.Text         = ToolRegistry.GetByCategory("MATERIEL").Count().ToString();
         Badge_MISES_A_JOUR.Text     = ToolRegistry.GetByCategory("MISES_A_JOUR").Count().ToString();
         Badge_NETTOYAGE.Text        = ToolRegistry.GetByCategory("NETTOYAGE").Count().ToString();
-        Badge_NOUVEAUTE.Text        = ToolRegistry.GetByCategory("NOUVEAUTE").Count().ToString();
         Badge_PERSONNALISATION.Text = ToolRegistry.GetByCategory("PERSONNALISATION").Count().ToString();
         Badge_REPARATION.Text       = ToolRegistry.GetByCategory("REPARATION").Count().ToString();
         Badge_RESEAU.Text           = ToolRegistry.GetByCategory("RESEAU").Count().ToString();
@@ -87,7 +86,7 @@ public partial class MainWindow : Window
     private static readonly string[] WarmupCategories =
     {
         "APPLICATIONS", "DEMARRAGE", "DIAGNOSTIC", "DISQUE", "MATERIEL", "MISES_A_JOUR",
-        "NETTOYAGE", "NOUVEAUTE", "PERSONNALISATION", "REPARATION", "RESEAU", "SECRETS", "SECURITE", "PARAMETRES"
+        "NETTOYAGE", "PERSONNALISATION", "REPARATION", "RESEAU", "SECRETS", "SECURITE", "PARAMETRES"
     };
 
     /// <summary>
@@ -270,7 +269,6 @@ public partial class MainWindow : Window
             "MATERIEL"         => new MaterielPage(),
             "MISES_A_JOUR"     => new MisesAJourPage(),
             "NETTOYAGE"        => new NettoyagePage(),
-            "NOUVEAUTE"        => new NouveautePage(),
             "PERSONNALISATION" => new PersonnalisationPage(),
             "REPARATION"       => new ReparationPage(),
             "RESEAU"           => new ReseauPage(),
@@ -589,9 +587,9 @@ public partial class MainWindow : Window
             else
             {
                 MainFrame.Navigate(new SearchResultsPage(query));
-                PageTitle.Text    = "Recherche";
-                PageSubtitle.Text = $"Résultats pour \"{query}\"";
+                PageTitle.Text = "Recherche";
             }
+            PageSubtitle.Text = $"Résultats pour \"{query}\"";
         }
         else if (query.Length == 0 && MainFrame.Content is SearchResultsPage)
         {

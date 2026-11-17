@@ -62,21 +62,6 @@ public static class InnovationService
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 4. BENCHMARK DE VITESSE DNS (INTERFACE GRAPHIQUE)
-    // ─────────────────────────────────────────────────────────────────────────
-    public static async Task OpenDnsBenchmarkDialog(Action<string> onOutput, CancellationToken ct = default)
-    {
-        await Application.Current.Dispatcher.InvokeAsync(() =>
-        {
-            var dialog = new DnsBenchmarkDialog(onOutput, ct)
-            {
-                Owner = Application.Current.MainWindow
-            };
-            dialog.ShowDialog();
-        });
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
     // 5. SUITE D'ANALYSE DE SITE WEB (CHECKLIST 21 POINTS, SPEEDTEST, SEO, MOTS-CLÉS, RÉSEAU)
     // ─────────────────────────────────────────────────────────────────────────
     public static async Task OpenWebsiteAnalyzerDialog(Action<string> onOutput, CancellationToken ct = default, int initialTab = 0)

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using ScriptsWindows.Models;
 using ScriptsWindows.Services;
 
@@ -8,7 +10,7 @@ namespace ScriptsWindows.Core;
 
 /// <summary>
 /// Répertoire central de tous les outils disponibles dans l'application.
-/// Structuré en 13 catégories actives (totalisant 43 outils).
+/// Structuré en 12 catégories actives (totalisant 43 outils).
 /// Conforme à la directive UI/UX Alex Toolkit.
 /// </summary>
 public static class ToolRegistry
@@ -29,7 +31,6 @@ public static class ToolRegistry
         RegisterSecurityTools();         // Catégorie 10 : Surveillance, Sécurité et Événements
         RegisterPersonalizationTools();  // Catégorie 11 : Personnalisation et Système
         RegisterBootTools();             // Catégorie 12 : Démarrage & Récupération
-        RegisterInnovationTools();       // Catégorie 13 : Nouveautés & Innovations
     }
 
     public static IReadOnlyList<ScriptTool> AllTools => _allTools;
@@ -77,14 +78,10 @@ public static class ToolRegistry
         ["sec_win_key"] = "AlexToolkit.exe (interface : WindowsKeyDialog — SoftwareLicensingService + DigitalProductId)",
         ["sec_browser_profiles"] = "AlexToolkit.exe (interface : BrowserHistoryDialog — SQLite Chrome, Edge, Brave, Vivaldi, Opera, Firefox)",
 
-        // ─── Réseau (7) ───
-        ["net_center"] = "AlexToolkit.exe (Centre de contrôle réseau : diagnostic, DNS, scan et triage)",
-        ["nov_dns_speed_test"] = "AlexToolkit.exe (Benchmark de latence et vitesse des serveurs DNS)",
-        ["net_reset_all"] = "AlexToolkit.exe (interface : NetworkResetDialog — 7 étapes + test de connexion)",
-        ["net_wifi_scan"] = "netsh.exe wlan show networks mode=bssid (Scanner visuel)",
-        ["net_wifi_report"] = "netsh.exe wlan show wlanreport (Rapport graphique)",
-        ["net_lan_scan"] = "AlexToolkit.exe (Scanner LAN des périphériques et machines locales)",
-        ["net_flux_analysis"] = "netstat.exe (Moniteur des flux et connexions TCP actives)",
+        // ─── Réseau — 3 hubs à onglets (3) ───
+        ["net_hub_internet"] = "AlexToolkit.exe (onglets : Centre réseau + Benchmark DNS + Grand Reset)",
+        ["net_hub_wifi"] = "AlexToolkit.exe (onglets : Wi-Fi voisins + bilan des déconnexions)",
+        ["net_hub_devices"] = "AlexToolkit.exe (onglets : appareils LAN + connexions TCP actives)",
 
         // ─── Disque (4) ───
         ["disk_mgmt_gui"] = "diskmgmt.msc",
@@ -116,7 +113,7 @@ public static class ToolRegistry
         // ─── Démarrage & Récupération (1) ───
         ["boot_center"] = "AlexToolkit.exe (Console unifiée de démarrage et récupération : sans échec, WinRE, BIOS/UEFI, BCD)",
 
-        // ─── Nouveautés & Innovations (1) ───
+        // ─── Réseau — Audit Web (1) ───
         ["nov_website_analyzer"] = "AlexToolkit.exe (Centre d'Audit & Analyseur de Site Web : Vue d'ensemble, 21 Contrôles, Speedtest, SEO, Mots-Clés, SSL & Réseau)",
     };
 
@@ -134,17 +131,104 @@ public static class ToolRegistry
     /// <summary>Outils visibles dans l'interface (hors outils masqués).</summary>
     public static IEnumerable<ScriptTool> VisibleTools => _allTools.Where(t => !t.IsHidden);
 
+    /// <summary>Mots vides ignorés : on peut taper des phrases naturelles (« réparer mon internet »).</summary>
+    private static readonly HashSet<string> SearchStopWords = new(StringComparer.Ordinal)
+    {
+        "le","la","les","un","une","des","du","de","d","l","au","aux","en","dans","sur","sous",
+        "pour","avec","sans","par","mon","ma","mes","ton","ta","tes","son","sa","ses","nos","vos",
+        "notre","votre","leur","leurs","ce","cet","cette","et","ou","que","qui","quoi","est",
+        "je","tu","il","elle","on","nous","vous","ils","me","te","se","ne","pas","plus","the","my"
+    };
+
+    /// <summary>Minuscule + suppression des accents (é→e) pour une recherche tolérante.</summary>
+    private static string NormalizeSearch(string? s)
+    {
+        if (string.IsNullOrEmpty(s)) return string.Empty;
+        var decomposed = s.ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder(decomposed.Length);
+        foreach (var ch in decomposed)
+            if (CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark)
+                sb.Append(ch);
+        return sb.ToString().Normalize(NormalizationForm.FormC);
+    }
+
+    /// <summary>Champ normalisé où chaque mot est précédé d'une espace (recherche par début de mot).</summary>
+    private static string SearchField(string? s)
+    {
+        var n = NormalizeSearch(s);
+        var sb = new StringBuilder(n.Length + 1).Append(' ');
+        foreach (var ch in n) sb.Append(char.IsLetterOrDigit(ch) ? ch : ' ');
+        return sb.ToString();
+    }
+
+    private static readonly char[] SearchSeparators =
+        { ' ', '\t', '\n', '\r', ',', ';', '.', ':', '!', '?', '\'', '’', '"', '(', ')', '[', ']', '/', '\\', '-', '_', '&' };
+
+    /// <summary>
+    /// Recherche multi-mots tolérante aux accents : « reparer internet » trouve les outils
+    /// contenant TOUS les mots (prioritaires), puis les correspondances partielles, classées par pertinence.
+    /// </summary>
     public static IEnumerable<ScriptTool> Search(string query)
     {
         if (string.IsNullOrWhiteSpace(query)) return Enumerable.Empty<ScriptTool>();
-        var q = query.Trim().ToLowerInvariant();
-        return _allTools.Where(t =>
-            t.Name.ToLowerInvariant().Contains(q) ||
-            t.Description.ToLowerInvariant().Contains(q) ||
-            t.Category.ToLowerInvariant().Contains(q) ||
-            t.SubHeading.ToLowerInvariant().Contains(q) ||
-            t.Tags.Any(tag => tag.ToLowerInvariant().Contains(q)) ||
-            t.Features.Any(feat => feat.ToLowerInvariant().Contains(q)));
+
+        var tokens = NormalizeSearch(query)
+            .Split(SearchSeparators, StringSplitOptions.RemoveEmptyEntries)
+            .Where(w => w.Length >= 2 && !SearchStopWords.Contains(w))
+            .Distinct()
+            .ToList();
+
+        // Requête trop courte ou uniquement des mots vides : on retombe sur la requête brute.
+        if (tokens.Count == 0)
+        {
+            var raw = NormalizeSearch(query).Trim();
+            if (raw.Length == 0) return Enumerable.Empty<ScriptTool>();
+            tokens = new List<string> { raw };
+        }
+
+        var scored = new List<(ScriptTool Tool, int Score, int Hits)>();
+        foreach (var t in _allTools)
+        {
+            if (t.IsHidden) continue;
+
+            string nName = SearchField(t.Name);
+            string nTags = SearchField(string.Join(" ", t.Tags));
+            string nSub  = SearchField(t.SubHeading);
+            string nCat  = SearchField(t.Category);
+            string nDesc = SearchField(t.Description);
+            string nFeat = SearchField(string.Join(" ", t.Features));
+
+            int score = 0, hits = 0;
+            foreach (var raw in tokens)
+            {
+                // Mots courts : début de mot uniquement (« cle » → « cles », pas « cycles ») ;
+                // mots longs : n'importe où (« virus » → « antivirus »).
+                var tok = raw.Length < 5 ? " " + raw : raw;
+                int w = 0;
+                if (nName.Contains(tok)) w += 5;
+                if (nTags.Contains(tok)) w += 4;
+                if (nSub.Contains(tok))  w += 2;
+                if (nCat.Contains(tok))  w += 2;
+                if (nDesc.Contains(tok)) w += 1;
+                if (nFeat.Contains(tok)) w += 1;
+                if (w > 0) { hits++; score += w; }
+            }
+
+            if (hits == 0) continue;
+            if (hits == tokens.Count) score += 100;   // bonus : tous les mots trouvés
+            scored.Add((t, score, hits));
+        }
+
+        if (scored.Count == 0) return Enumerable.Empty<ScriptTool>();
+
+        // On ne garde que les meilleures correspondances : si des outils contiennent TOUS les mots,
+        // seuls eux sont affichés ; sinon, ceux qui en contiennent le plus.
+        int bestHits = scored.Max(x => x.Hits);
+        return scored
+            .Where(x => x.Hits == bestHits)
+            .OrderByDescending(x => x.Score)
+            .ThenBy(x => NormalizeSearch(x.Tool.Name))
+            .Select(x => x.Tool);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -585,130 +669,90 @@ public static class ToolRegistry
     // ─────────────────────────────────────────────────────────────────────────
     private static void RegisterNetworkTools()
     {
+        // ─── HUB 1 : Centre Internet & Connexion (diagnostic + DNS, benchmark DNS, grand reset) ───
         _allTools.Add(new ScriptTool
         {
-            Id = "net_center",
-            Name = "Centre de contrôle Internet & Réseau",
-            Description = "Vérifiez votre connexion, testez la rapidité d'accès et changez de serveur DNS (Cloudflare, Google) pour accélérer le chargement des sites web.",
+            Id = "net_hub_internet",
+            Name = "Centre Internet & Connexion",
+            Description = "Tout pour votre connexion dans une fenêtre à onglets : diagnostic et changement de DNS, comparatif de vitesse des serveurs DNS, et réparation complète (Grand Reset) en cas de panne.",
             Features = new[]
             {
-                "Test de connectivité passerelle, Internet et DNS",
-                "Changement rapide de DNS (Cloudflare, Google, Quad9)",
-                "Affichage IP publique, locale et statut de carte"
+                "Diagnostic connexion, IP, et changement de DNS (Cloudflare, Google, Quad9)",
+                "Benchmark de latence DNS (ping réel) et recommandation du plus rapide",
+                "Réparation Internet en 7 étapes (DNS, Winsock, TCP/IP…) + test final"
             },
             Category = "RESEAU",
-            SubHeading = "Dépannage et amélioration de la connexion",
+            SubHeading = "Connexion Internet & Wi-Fi",
             Icon = "🌐",
-            Action = (log, ct) => NetworkService.OpenNetworkCenterDialog(log, ct),
-            Tags = new[] { "internet", "connexion", "réseau", "dns", "accélérer", "sites", "cloudflare", "google", "triage", "diagnostic" }
+            Action = (log, ct) => DialogHelper.ShowToolAsync(
+                "Centre Internet & Connexion",
+                ("Diagnostic & DNS", new Views.Controls.NetworkCenterDialog(log, ct)),
+                ("Benchmark DNS", new Views.Controls.DnsBenchmarkDialog(log, ct)),
+                ("Réparer (Grand Reset)", new Views.Controls.NetworkResetDialog(log, ct))),
+            Tags = new[] { "internet", "connexion", "réseau", "dns", "accélérer", "sites", "cloudflare", "google", "quad9", "benchmark", "latence", "ping", "panne", "réparer", "coupure", "reset", "réinitialiser", "bloqué", "dhcp", "winsock", "tcp" }
         });
 
+        // ─── HUB 2 : Wi-Fi (réseaux voisins + bilan des déconnexions) ───
         _allTools.Add(new ScriptTool
         {
-            Id = "nov_dns_speed_test",
-            Name = "Benchmark de vitesse DNS et test de latence",
-            Description = "Compare en direct les performances et le ping de Cloudflare, Google, Quad9 et de votre FAI pour vous recommander le DNS le plus rapide.",
+            Id = "net_hub_wifi",
+            Name = "Wi-Fi : voisins & déconnexions",
+            Description = "Deux outils Wi-Fi réunis : repérez les box et canaux autour de vous pour choisir le meilleur, et consultez l'historique visuel de vos coupures de connexion sans fil.",
             Features = new[]
             {
-                "Mesure du ping réel en millisecondes sur 10 requêtes",
-                "Comparatif Cloudflare (1.1.1.1), Google (8.8.8.8) et FAI",
-                "Recommandation automatique du serveur le plus réactif"
+                "Réseaux Wi-Fi voisins avec jauges de signal et choix du meilleur canal",
+                "Bilan graphique des déconnexions sur 3 jours (rapport officiel Windows)",
+                "Diagnostic des pertes de signal, erreurs de pilote ou de veille"
             },
             Category = "RESEAU",
-            SubHeading = "Dépannage et amélioration de la connexion",
-            Icon = "🌐",
-            Action = (log, ct) => InnovationService.OpenDnsBenchmarkDialog(log, ct),
-            Tags = new[] { "dns", "benchmark", "vitesse", "latence", "ping", "cloudflare", "google", "quad9", "internet", "connexion" }
-        });
-
-        _allTools.Add(new ScriptTool
-        {
-            Id = "net_reset_all",
-            Name = "Réparer la connexion Internet (Grand Reset)",
-            Description = "Plus d'Internet ou connexion bloquée ? Remet à neuf les réglages réseau de Windows en 7 étapes suivies une à une, puis teste la connexion.",
-            Features = new[]
-            {
-                "Cache DNS, ARP, Winsock, TCP/IP et adresse IP",
-                "Résultat de chaque étape et test de connexion final",
-                "Redémarrage proposé à la fin"
-            },
-            Category = "RESEAU",
-            SubHeading = "Dépannage et amélioration de la connexion",
-            Icon = "⚡",
-            Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.NetworkResetDialog(log, ct)),
-            Tags = new[] { "panne", "internet", "réparer", "coupure", "reset", "réinitialiser", "bloqué", "dhcp", "wifi", "ethernet" }
-        });
-
-        _allTools.Add(new ScriptTool
-        {
-            Id = "net_wifi_scan",
-            Name = "Détecteur des réseaux Wi-Fi voisins",
-            Description = "Affiche les box et bornes Wi-Fi autour de chez vous avec des jauges visuelles colorées pour trouver le meilleur canal sans interférences.",
-            Features = new[]
-            {
-                "Affichage box voisines et canaux (2.4 / 5 GHz)",
-                "Jauges visuelles colorées de puissance de signal (dBm)",
-                "Détection des interférences pour choisir le meilleur canal"
-            },
-            Category = "RESEAU",
-            SubHeading = "Diagnostic et analyse du Wi-Fi",
+            SubHeading = "Connexion Internet & Wi-Fi",
             Icon = "📶",
-            Action = (log, ct) => NetworkService.OpenWifiScannerDialog(log, ct),
-            Tags = new[] { "wifi", "box", "voisins", "puissance", "signal", "jauges", "canaux", "scan", "sans fil" }
+            Action = (log, ct) => DialogHelper.ShowToolAsync(
+                "Wi-Fi : voisins & déconnexions",
+                ("Réseaux voisins", new Views.Controls.WifiScannerDialog(log, ct)),
+                ("Déconnexions (rapport)", new Views.Controls.WifiReportDialog(log, ct))),
+            Tags = new[] { "wifi", "box", "voisins", "puissance", "signal", "jauges", "canaux", "scan", "sans fil", "déconnexions", "coupures", "stabilité", "graphique", "historique", "rapport" }
         });
 
+        // ─── HUB 3 : Appareils & Connexions (LAN + flux TCP) ───
         _allTools.Add(new ScriptTool
         {
-            Id = "net_wifi_report",
-            Name = "Bilan des déconnexions Wi-Fi (Graphique)",
-            Description = "Affiche un graphique visuel des déconnexions et de la stabilité de votre connexion sans fil au cours des 3 derniers jours.",
+            Id = "net_hub_devices",
+            Name = "Appareils & Connexions",
+            Description = "Voyez qui et quoi est connecté : la liste des appareils branchés sur votre box (PC, téléphones, TV, imprimantes) et les applications de votre PC qui communiquent avec Internet.",
             Features = new[]
             {
-                "Génération du rapport officiel Windows wlanreport",
-                "Historique visuel des pertes de signal sur 3 jours",
-                "Diagnostic des erreurs de pilote ou de veille"
+                "Scan des appareils du réseau local (IP et MAC)",
+                "Moniteur temps réel des applications connectées à Internet (TCP)",
+                "Repérage facile des programmes suspects ou espions"
             },
             Category = "RESEAU",
-            SubHeading = "Diagnostic et analyse du Wi-Fi",
-            Icon = "📊",
-            Action = (log, ct) => DiagnosticService.GetWifiReport(log, ct),
-            Tags = new[] { "wifi", "déconnexions", "coupures", "santé", "stabilité", "graphique", "historique", "visuel", "rapport" }
-        });
-
-        _allTools.Add(new ScriptTool
-        {
-            Id = "net_lan_scan",
-            Name = "Voir les appareils connectés sur ma Box",
-            Description = "Découvre en direct les smartphones, ordinateurs, télés connectées et imprimantes branchés sur votre réseau avec leur adresse IP.",
-            Features = new[]
-            {
-                "Scan rapide du sous-réseau local (192.168.x.x)",
-                "Découverte des PC, smartphones, imprimantes et TV",
-                "Affichage des adresses IP et adresses MAC détectées"
-            },
-            Category = "RESEAU",
-            SubHeading = "Appareils branchés et connexions actives",
+            SubHeading = "Appareils & Analyse Web",
             Icon = "🖥️",
-            Action = (log, ct) => NetworkService.OpenLanScannerDialog(log, ct),
-            Tags = new[] { "box", "appareils", "qui est connecté", "téléphones", "ip", "réseau", "lan", "découverte", "routeur" }
+            Action = (log, ct) => DialogHelper.ShowToolAsync(
+                "Appareils & Connexions",
+                ("Appareils sur la Box (LAN)", new Views.Controls.LanScannerDialog(log, ct)),
+                ("Applis connectées (TCP)", new Views.Controls.TcpConnectionsDialog(log, ct))),
+            Tags = new[] { "box", "appareils", "qui est connecté", "téléphones", "ip", "mac", "réseau", "lan", "découverte", "routeur", "applications", "connexions", "internet", "flux", "espion", "ports", "processus", "surveiller", "tcp" }
         });
 
+        // ─── Analyseur de site web (audit, Speedtest, SEO) ───
         _allTools.Add(new ScriptTool
         {
-            Id = "net_flux_analysis",
-            Name = "Voir les applications connectées à Internet",
-            Description = "Liste filtrable en temps réel des logiciels qui communiquent avec l'extérieur, pratique pour débusquer les programmes suspects.",
+            Id = "nov_website_analyzer",
+            Name = "Centre d'Audit & Analyseur de Site Web",
+            Description = "Interface unifiée tout-en-un : entrez un domaine pour obtenir une synthèse globale (note A+ à D), la checklist des 21 contrôles pré-lancement, un Speedtest complet (DNS, TLS, TTFB, salves HTTP), l'analyse SEO (aperçu Google SERP, structure H1-H6), l'extracteur de mots-clés (1/2/3 mots + score SEO) et l'inspecteur SSL/Headers.",
             Features = new[]
             {
-                "Moniteur en temps réel des flux TCP établis",
-                "Identification du nom de processus, port et IP distante",
-                "Détection facile des logiciels suspects ou espions"
+                "Tableau de bord global (Note A+ à D, 4 piliers, plan d'action prioritaire) & Checklist 21 points",
+                "Speedtest Web (Waterfall DNS/TLS/TTFB, débit, 5 salves HTTP, simulation Fibre/4G/3G)",
+                "Studio SEO & Mots-Clés (Aperçu Google SERP, Open Graph, H1-H6, densité lexicale, SSL & Headers)"
             },
             Category = "RESEAU",
-            SubHeading = "Appareils branchés et connexions actives",
-            Icon = "🔍",
-            Action = (log, ct) => NetworkService.OpenTcpConnectionsDialog(log, ct),
-            Tags = new[] { "applications", "connexions", "internet", "flux", "espion", "ports", "processus", "surveiller", "tcp" }
+            SubHeading = "Appareils & Analyse Web",
+            Icon = "🌐",
+            Action = (log, ct) => InnovationService.OpenWebsiteAnalyzerDialog(log, ct, initialTab: 0),
+            Tags = new[] { "site", "web", "url", "analyseur", "audit", "speedtest", "vitesse", "seo", "serp", "mots-clés", "keywords", "densité", "h1", "rgpd", "cgu", "https", "ssl", "dns", "ttfb", "cookies", "open graph", "favicon", "sitemap", "robots.txt", "alt", "responsive", "404", "liens" }
         });
     }
 
@@ -1079,27 +1123,6 @@ public static class ToolRegistry
     // ─────────────────────────────────────────────────────────────────────────
     // CATÉGORIE 13 : ✨ NOUVEAUTÉS & INNOVATIONS
     // ─────────────────────────────────────────────────────────────────────────
-    private static void RegisterInnovationTools()
-    {
-        _allTools.Add(new ScriptTool
-        {
-            Id = "nov_website_analyzer",
-            Name = "Centre d'Audit & Analyseur de Site Web",
-            Description = "Interface unifiée tout-en-un : entrez un domaine pour obtenir une synthèse globale (note A+ à D), la checklist des 21 contrôles pré-lancement, un Speedtest complet (DNS, TLS, TTFB, salves HTTP), l'analyse SEO (aperçu Google SERP, structure H1-H6), l'extracteur de mots-clés (1/2/3 mots + score SEO) et l'inspecteur SSL/Headers.",
-            Features = new[]
-            {
-                "Tableau de bord global (Note A+ à D, 4 piliers, plan d'action prioritaire) & Checklist 21 points",
-                "Speedtest Web (Waterfall DNS/TLS/TTFB, débit, 5 salves HTTP, simulation Fibre/4G/3G)",
-                "Studio SEO & Mots-Clés (Aperçu Google SERP, Open Graph, H1-H6, densité lexicale, SSL & Headers)"
-            },
-            Category = "NOUVEAUTE",
-            SubHeading = "Audit Web, Speedtest & SEO",
-            Icon = "🌐",
-            Action = (log, ct) => InnovationService.OpenWebsiteAnalyzerDialog(log, ct, initialTab: 0),
-            Tags = new[] { "site", "web", "url", "analyseur", "audit", "speedtest", "vitesse", "seo", "serp", "mots-clés", "keywords", "densité", "h1", "rgpd", "cgu", "https", "ssl", "dns", "ttfb", "cookies", "open graph", "favicon", "sitemap", "robots.txt", "alt", "responsive", "404", "liens" }
-        });
-    }
-
 }
 
 

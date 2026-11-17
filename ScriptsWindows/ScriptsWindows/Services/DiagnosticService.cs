@@ -513,14 +513,8 @@ Get-PhysicalDisk | ForEach-Object {
     /// <summary>Ouvre l'interface visuelle interactive du Rapport de Santé Wi-Fi.</summary>
     public static async Task OpenWifiReportDialog(Action<string> onOutput, CancellationToken ct = default)
     {
-        await Application.Current.Dispatcher.InvokeAsync(() =>
-        {
-            var dialog = new Views.Controls.WifiReportDialog(onOutput, ct)
-            {
-                Owner = Application.Current.MainWindow
-            };
-            dialog.ShowDialog();
-        });
+        await DialogHelper.ShowToolAsync("Bilan des déconnexions Wi-Fi",
+            ("Rapport Wi-Fi", new Views.Controls.WifiReportDialog(onOutput, ct)));
     }
 
     /// <summary>Ouvre l'interface interactive de gestion des applications au démarrage de Windows.</summary>

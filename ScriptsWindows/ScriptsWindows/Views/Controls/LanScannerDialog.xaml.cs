@@ -25,8 +25,9 @@ public class LanDeviceItem
 /// Scanner LAN natif (.NET) : ping ICMP parallèle sur le /24 local + résolution DNS inverse.
 /// Aucun processus PowerShell lancé → compatible Windows PowerShell 5.1 / 7 et ~1-2 s par scan.
 /// </summary>
-public partial class LanScannerDialog : Window
+public partial class LanScannerDialog : UserControl
 {
+    private bool _booted;
     private const int PingTimeoutMs     = 1000;
     private const int MaxParallelPings  = 64;
     private const int DnsLookupTimeoutMs = 1500;
@@ -47,12 +48,22 @@ public partial class LanScannerDialog : Window
         _ct = ct;
         ItemsLanList.ItemsSource = _devices;
 
-        Loaded += (_, _) => DetectSubnet();
-        Closed += (_, _) =>
+        Loaded += (_, _) =>
         {
-            try { _windowCts.Cancel(); } catch { }
-            _windowCts.Dispose();
+            if (!_booted) { _booted = true; DetectSubnet(); }
+            // Annule le scan en cours si la fenêtre-hôte se ferme.
+            if (Window.GetWindow(this) is { } host) host.Closed += StopScan;
         };
+        Unloaded += (_, _) => StopScan(null, EventArgs.Empty);
+    }
+
+    private bool _stopped;
+    private void StopScan(object? sender, EventArgs e)
+    {
+        if (_stopped) return;
+        _stopped = true;
+        try { _windowCts.Cancel(); } catch { }
+        _windowCts.Dispose();
     }
 
     /// <summary>
@@ -246,5 +257,5 @@ public partial class LanScannerDialog : Window
         }
     }
 
-    private void BtnClose_Click(object sender, RoutedEventArgs e) => Close();
+    private void BtnClose_Click(object sender, RoutedEventArgs e) => Window.GetWindow(this)?.Close();
 }

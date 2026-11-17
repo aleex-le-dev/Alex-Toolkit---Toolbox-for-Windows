@@ -361,6 +361,125 @@ public static class SensitiveDataScanner
         foreach (var r in results) yield return r;
     }
 
+    /// <summary>
+    /// Valeurs sensibles d'un texte, <b>en clair</b> (pour l'extraction demandée par l'utilisateur sur ses propres fichiers).
+    /// Contrairement à <see cref="ScanContent"/>, rien n'est masqué.
+    /// </summary>
+    public static List<(string Label, string Value, int Line)> ExtractFromText(string text)
+    {
+        var results = new List<(string, string, int)>();
+        if (string.IsNullOrEmpty(text) || text.IndexOf('\0') >= 0) return results;
+        try
+        {
+            foreach (Match pw in RxPassword.Matches(text))
+                results.Add(($"Mot de passe ({pw.Groups[1].Value.Trim()})", pw.Groups[2].Value, Line(text, pw.Index)));
+
+            foreach (Match iban in RxIban.Matches(text))
+                if (IsValidIban(iban.Value)) results.Add(("IBAN", iban.Value.Trim(), Line(text, iban.Index)));
+
+            foreach (Match card in RxCard.Matches(text))
+            {
+                string digits = new(card.Value.Where(char.IsDigit).ToArray());
+                if (digits.Length is >= 13 and <= 19 && IsLikelyCard(digits) && Luhn(digits))
+                    results.Add(("Carte bancaire", digits, Line(text, card.Index)));
+            }
+
+            foreach (Match nir in RxNir.Matches(text))
+                if (IsValidNir(nir)) results.Add(("N° de sécurité sociale", new string(nir.Value.Where(char.IsLetterOrDigit).ToArray()), Line(text, nir.Index)));
+
+            var pk = RxPrivateKey.Match(text);
+            if (pk.Success) results.Add(("Clé privée", "(bloc PRIVATE KEY — contenu complet dans le fichier d'origine)", Line(text, pk.Index)));
+
+            foreach (var (label, rx) in ApiKeys)
+                foreach (Match k in rx.Matches(text))
+                    results.Add(($"Clé d'API ({label})", k.Value, Line(text, k.Index)));
+        }
+        catch (RegexMatchTimeoutException) { }
+
+        // Dédoublonnage (une même valeur peut être captée par plusieurs motifs)
+        return results.GroupBy(r => r.Item1 + "|" + r.Item2).Select(g => g.First()).OrderBy(r => r.Item3).ToList();
+    }
+
+    /// <summary>Lit un fichier comme texte s'il est lisible (pas binaire, taille raisonnable).</summary>
+    private static bool TryReadText(string path, out string text)
+    {
+        text = "";
+        try
+        {
+            var fi = new FileInfo(path);
+            if (fi.Length == 0 || fi.Length > MaxContentBytes) return false;
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var sr = new StreamReader(fs, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            string content = sr.ReadToEnd();
+            if (content.IndexOf('\0') >= 0) return false;
+            text = content;
+            return true;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>
+    /// Rassemble, dans un seul fichier texte, les valeurs sensibles <b>en clair</b> extraites des fichiers trouvés,
+    /// pour que l'utilisateur les consulte sans ouvrir chaque fichier. Les fichiers non lisibles automatiquement
+    /// (documents, scans, coffres-forts) sont listés comme « à ouvrir manuellement ».
+    /// </summary>
+    public static (string Text, int Extracted, int Manual) BuildExtraction(IReadOnlyList<Finding> items, CancellationToken ct)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("===========================================================");
+        sb.AppendLine($" EXTRACTION DES INFORMATIONS CONFIDENTIELLES — {Environment.MachineName}");
+        sb.AppendLine($" {DateTime.Now:dd/MM/yyyy HH:mm} — Alex Toolkit");
+        sb.AppendLine(" ATTENTION : ce fichier contient des mots de passe et des clés EN CLAIR.");
+        sb.AppendLine(" Conservez-le en lieu sûr et supprimez-le dès qu'il n'est plus utile.");
+        sb.AppendLine("===========================================================");
+        sb.AppendLine();
+
+        int extracted = 0, manual = 0;
+        // Un fichier par bloc (dédoublonné), rangé du plus grave au moins grave
+        var byFile = items
+            .GroupBy(i => i.Path, StringComparer.OrdinalIgnoreCase)
+            .Select(g => (Path: g.Key, Level: g.Min(i => GetLevel(i.Category))))
+            .OrderBy(f => f.Level).ThenBy(f => f.Path, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (var (path, level) in byFile)
+        {
+            if (ct.IsCancellationRequested) break;
+            sb.AppendLine($"[{LevelFolderName(level)[4..].ToUpperInvariant()}]");
+            sb.AppendLine(path);
+
+            if (!File.Exists(path))
+            {
+                sb.AppendLine(Directory.Exists(path) ? "   → Dossier (à ouvrir manuellement)." : "   → Fichier introuvable.");
+            }
+            else if (TryReadText(path, out string text))
+            {
+                var hits = ExtractFromText(text);
+                if (hits.Count > 0)
+                {
+                    foreach (var (label, value, line) in hits)
+                        sb.AppendLine($"   • {label} (ligne {line}) : {value}");
+                    extracted++;
+                }
+                else
+                {
+                    sb.AppendLine("   → Texte sans secret reconnu automatiquement — à ouvrir pour vérifier.");
+                    manual++;
+                }
+            }
+            else
+            {
+                sb.AppendLine("   → Document, scan ou fichier protégé — à ouvrir manuellement.");
+                manual++;
+            }
+            sb.AppendLine();
+        }
+
+        sb.AppendLine("===========================================================");
+        sb.AppendLine($" {extracted} fichier(s) avec des valeurs extraites, {manual} à ouvrir manuellement.");
+        return (sb.ToString(), extracted, manual);
+    }
+
     // ─── Classement et actions (fenêtre « Documents et codes confidentiels ») ───
 
     public enum Level { Critical, Personal, Technical }
@@ -384,20 +503,36 @@ public static class SensitiveDataScanner
         return Level.Personal;
     }
 
-    /// <summary>Copie les fichiers dans <paramref name="targetDir"/>, rangés par catégorie (noms en double renumérotés).</summary>
+    /// <summary>Dossier de niveau (numéroté pour rester trié du plus grave au moins grave dans l'Explorateur).</summary>
+    public static string LevelFolderName(Level level) => level switch
+    {
+        Level.Critical => "1 - Secrets en clair",
+        Level.Personal => "2 - Documents personnels",
+        _ => "3 - Accès techniques",
+    };
+
+    /// <summary>
+    /// Copie les fichiers dans <paramref name="targetDir"/>, rangés par niveau puis par catégorie
+    /// (« 1 - Secrets en clair\Mot de passe en clair\… »). Un fichier repéré plusieurs fois n'est copié
+    /// qu'une fois, dans son niveau le plus grave ; les noms en double sont renumérotés.
+    /// </summary>
     public static (int Copied, List<string> Errors) CopyFindings(IEnumerable<Finding> items, string targetDir, CancellationToken ct)
     {
         int copied = 0;
         var errors = new List<string>();
         var invalid = Path.GetInvalidFileNameChars();
-        foreach (var item in items)
+        var done = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in items.OrderBy(i => GetLevel(i.Category)))
         {
             if (ct.IsCancellationRequested) break;
             try
             {
-                if (!File.Exists(item.Path)) continue; // dossier (ex. .gnupg) : non copié
-                string cat = new string(item.Category.Where(c => !invalid.Contains(c)).ToArray()).Trim();
-                string catDir = Path.Combine(targetDir, cat.Length > 0 ? cat : "Autres");
+                if (!File.Exists(item.Path) || !done.Add(item.Path)) continue; // dossier (ex. .gnupg) ou déjà copié
+                string label = item.Category.StartsWith("Contenu : ", StringComparison.Ordinal) ? item.Category["Contenu : ".Length..] : item.Category;
+                // « Clé / certificat » → « Clé - certificat » (caractères interdits dans un nom de dossier)
+                string cat = Regex.Replace(new string(label.Select(c => invalid.Contains(c) ? '-' : c).ToArray()), @"\s+", " ").Trim();
+                if (cat.Length > 0) cat = char.ToUpper(cat[0]) + cat[1..];
+                string catDir = Path.Combine(targetDir, LevelFolderName(GetLevel(item.Category)), cat.Length > 0 ? cat : "Autres");
                 Directory.CreateDirectory(catDir);
 
                 string name = Path.GetFileNameWithoutExtension(item.Path), ext = Path.GetExtension(item.Path);

@@ -13,4 +13,8 @@ public static class DialogHelper
                 window.Owner = owner;
             window.ShowDialog();
         }).Task;
+
+    /// <summary>Affiche un ou plusieurs outils (UserControl) dans une fenêtre à onglets.</summary>
+    public static Task ShowToolAsync(string title, params (string Header, System.Windows.Controls.UserControl Content)[] tabs)
+        => ShowDialogAsync(() => new Views.Controls.ToolTabsWindow(title, tabs));
 }
