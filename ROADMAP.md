@@ -35,4 +35,4 @@ Feuille de route d'**Alex Toolkit**. Les fonctionnalités sont priorisées selon
 ---
 
 💬 **Une idée de fonctionnalité ?**
-Participez aux discussions sur [GitHub Discussions → Ideas](https://github.com/aleex-le-dev/SCRIPT-WINDOWS-ALEEXLEDEV/discussions) !
+Participez aux discussions sur [GitHub Discussions → Ideas](https://github.com/aleex-le-dev/Alex-Toolkit---Toolbox-for-Windows/discussions) !

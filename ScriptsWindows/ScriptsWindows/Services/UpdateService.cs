@@ -36,7 +36,7 @@ public static class UpdateService
     private static readonly string[] ReleaseEndpoints = new[]
     {
         "https://api.github.com/repos/aleex-le-dev/ProToolbox-Window/releases",
-        "https://api.github.com/repos/aleex-le-dev/SCRIPT-WINDOWS-ALEEXLEDEV/releases"
+        "https://api.github.com/repos/aleex-le-dev/Alex-Toolkit---Toolbox-for-Windows/releases"
     };
 
     static UpdateService()

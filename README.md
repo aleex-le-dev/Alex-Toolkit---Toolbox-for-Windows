@@ -1,9 +1,9 @@
 # Alex Toolkit
 by AleexLeDev – diagnostiquez, réparez, optimisez et sécurisez Windows 10 & 11 depuis une seule application moderne : bilan de santé matériel, réparation système en un clic, grand nettoyage, bouclier anti-télémétrie, optimisation gaming, outils réseau et console de démarrage avancée. Aucun outil tiers à installer, aucun compte, aucun traceur.
 
-⚡ [Télécharger la dernière version (v4.x)](https://github.com/aleex-le-dev/SCRIPT-WINDOWS-ALEEXLEDEV/releases/latest) – un seul fichier `AlexToolkit_vX.Y.Z.exe` : double-cliquez et utilisez.  
+⚡ [Télécharger la dernière version (v4.x)](https://github.com/aleex-le-dev/Alex-Toolkit---Toolbox-for-Windows/releases/latest) – un seul fichier `AlexToolkit_vX.Y.Z.exe` : double-cliquez et utilisez.  
 📖 Documentation : [Guide d'utilisation](docs/manual.md) · [Suivi technique & refonte](SUIVI_REFONTE.md) · [Instructions de développement](CLAUDE.md)  
-💬 Communauté : [GitHub Discussions](https://github.com/aleex-le-dev/SCRIPT-WINDOWS-ALEEXLEDEV/discussions) – retours d'expérience, questions, propositions de nouveaux outils.  
+💬 Communauté : [GitHub Discussions](https://github.com/aleex-le-dev/Alex-Toolkit---Toolbox-for-Windows/discussions) – retours d'expérience, questions, propositions de nouveaux outils.  
 🗺️ Et ensuite ? [Roadmap](ROADMAP.md) · 📜 [Journal des modifications](CHANGELOG.md)
 
 ---
@@ -92,7 +92,7 @@ L'application et tous les modules décrits ci-dessus sont gratuits et open sourc
 ## Installation
 
 ### Exécutable (recommandé)
-1. Ouvrez la page [Releases](https://github.com/aleex-le-dev/SCRIPT-WINDOWS-ALEEXLEDEV/releases/latest).
+1. Ouvrez la page [Releases](https://github.com/aleex-le-dev/Alex-Toolkit---Toolbox-for-Windows/releases/latest).
 2. Téléchargez le fichier `AlexToolkit_vX.Y.Z.exe` de la dernière version.
 3. Lancez-le : une invite UAC demande les droits administrateur (nécessaires aux réparations système). L'application se relance automatiquement en administrateur si besoin.
 
@@ -134,8 +134,8 @@ Prérequis : [SDK .NET 10](https://dotnet.microsoft.com/download/dotnet/10.0) ou
 
 ```powershell
 # Cloner le dépôt
-git clone https://github.com/aleex-le-dev/SCRIPT-WINDOWS-ALEEXLEDEV.git
-cd SCRIPT-WINDOWS-ALEEXLEDEV
+git clone https://github.com/aleex-le-dev/Alex-Toolkit---Toolbox-for-Windows.git
+cd Alex-Toolkit---Toolbox-for-Windows
 
 # Compiler en 1 clic
 .\build.bat
@@ -178,7 +178,7 @@ dotnet publish ScriptsWindows/ScriptsWindows/ScriptsWindows.csproj -c Release -r
 ### Architecture du code
 
 ```text
-SCRIPT-WINDOWS-ALEEXLEDEV/
+Alex-Toolkit---Toolbox-for-Windows/
 ├── build.bat                         ← Compilation 1 clic (bump de version + publish single-file)
 ├── clean.bat                         ← Purge bin/, obj/ et logs
 ├── LICENSE                           ← Licence MIT
@@ -228,9 +228,9 @@ SCRIPT-WINDOWS-ALEEXLEDEV/
 
 ## Idées, questions et signalements
 
-* 💡 **Idées & suggestions** : [GitHub Discussions → Ideas](https://github.com/aleex-le-dev/SCRIPT-WINDOWS-ALEEXLEDEV/discussions) – proposez et votez pour les prochains outils.
-* 💬 **Questions & entraide** : [GitHub Discussions → Q&A](https://github.com/aleex-le-dev/SCRIPT-WINDOWS-ALEEXLEDEV/discussions).
-* 🐛 **Signaler un bug** : [ouvrir un ticket](https://github.com/aleex-le-dev/SCRIPT-WINDOWS-ALEEXLEDEV/issues/new) – joignez le fichier `crash_log.txt` s'il existe.
+* 💡 **Idées & suggestions** : [GitHub Discussions → Ideas](https://github.com/aleex-le-dev/Alex-Toolkit---Toolbox-for-Windows/discussions) – proposez et votez pour les prochains outils.
+* 💬 **Questions & entraide** : [GitHub Discussions → Q&A](https://github.com/aleex-le-dev/Alex-Toolkit---Toolbox-for-Windows/discussions).
+* 🐛 **Signaler un bug** : [ouvrir un ticket](https://github.com/aleex-le-dev/Alex-Toolkit---Toolbox-for-Windows/issues/new) – joignez le fichier `crash_log.txt` s'il existe.
 * 📜 **Historique des versions** : [journal des modifications](CHANGELOG.md).
 
 ---

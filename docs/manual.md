@@ -60,4 +60,4 @@ Cliquez sur le bouton **Thème** en haut à droite pour parcourir les 5 univers 
 
 ## ❓ Support & contribution
 
-Pour signaler une anomalie ou proposer un nouvel outil, visitez l'onglet [GitHub Issues](https://github.com/aleex-le-dev/SCRIPT-WINDOWS-ALEEXLEDEV/issues) ou [GitHub Discussions](https://github.com/aleex-le-dev/SCRIPT-WINDOWS-ALEEXLEDEV/discussions).
+Pour signaler une anomalie ou proposer un nouvel outil, visitez l'onglet [GitHub Issues](https://github.com/aleex-le-dev/Alex-Toolkit---Toolbox-for-Windows/issues) ou [GitHub Discussions](https://github.com/aleex-le-dev/Alex-Toolkit---Toolbox-for-Windows/discussions).
