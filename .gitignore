@@ -21,8 +21,8 @@ Intelligence_Report.txt
 DiagNav/
 DiagNav.zip
 
-# Ignore Windows executables (sauf l'exe de distribution si souhaité)
-# *.exe
+# Executables : distribues via GitHub Releases, jamais dans le depot
+*.exe
 *.old.exe
 *.cfg
 
@@ -49,3 +49,7 @@ Critical_Assets_Report.html
 # Assistant / Tooling local
 .claude/
 .claudeignore
+
+# Sorties de l'outil Documents confidentiels (Transferer / Extraire)
+Documents_confidentiels_*/
+Infos_confidentielles_*.txt
