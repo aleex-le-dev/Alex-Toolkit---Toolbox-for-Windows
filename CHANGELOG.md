@@ -71,6 +71,9 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 - **Boutons unifiés** : 72 styles locaux dupliqués remplacés par une famille unique (standard, principal, succès, danger, avertissement, icône) avec états survol / pressé / focus clavier.
 - **Console** : barre d'outils à icônes, bouton « Effacer ». **Barres de défilement** fines et discrètes.
 - Plus aucune couleur codée en dur : ~1 500 couleurs XAML et ~130 couleurs C# remplacées par des jetons du thème.
+- **Réseau regroupé en onglets** : les 8 outils deviennent 4 cartes — *Centre Internet & Connexion* (diagnostic et DNS, benchmark DNS, Grand Reset), *Wi-Fi* (réseaux voisins, déconnexions), *Appareils & Connexions* (appareils de la box, applications connectées) et l'*Analyseur de site web*.
+- **Catégorie « Nouveautés » supprimée** : l'Analyseur de site web rejoint la catégorie Réseau.
+- **Recherche en langage naturel** : on peut taper une phrase (« réparer mon internet », « voir qui est connecté sur ma box ») ; recherche insensible aux accents et aux majuscules, petits mots ignorés, seuls les outils les plus pertinents affichés.
 
 ### ✨ Améliorations
 - **Verrouillage global** : pendant l'exécution d'un script, les boutons « Exécuter » des autres outils sont grisés (avec info-bulle).
