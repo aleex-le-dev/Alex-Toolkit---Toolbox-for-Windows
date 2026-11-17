@@ -175,7 +175,7 @@ if ($devices) { $devices -join ', ' } else { 'NONE' }
         sb.AppendLine($"Date de l'audit : {DateTime.Now:dd/MM/yyyy à HH:mm}");
 
         Clipboard.SetText(sb.ToString());
-        MessageBox.Show(this, "Le rapport d'éligibilité complet a été copié dans le presse-papiers !", "Rapport copié", MessageBoxButton.OK, MessageBoxImage.Information);
+        AppMessageBox.Show(this, "Le rapport d'éligibilité complet a été copié dans le presse-papiers !", "Rapport copié", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private async void BtnRefresh_Click(object sender, RoutedEventArgs e)

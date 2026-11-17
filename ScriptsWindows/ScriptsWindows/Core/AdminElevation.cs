@@ -41,7 +41,7 @@ public static class AdminElevation
         catch (System.ComponentModel.Win32Exception)
         {
             // L'utilisateur a refusé l'UAC — on affiche un message et on quitte
-            MessageBox.Show(
+            AppMessageBox.Show(
                 "Cette application nécessite les droits administrateur pour fonctionner.\n\nVeuillez relancer en tant qu'administrateur.",
                 "Droits insuffisants",
                 MessageBoxButton.OK,

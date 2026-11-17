@@ -125,7 +125,7 @@ public partial class WifiReportDialog : Window
     {
         if (!File.Exists(_sourceReportPath))
         {
-            MessageBox.Show("Veuillez d'abord générer le rapport Wi-Fi.", "Export", MessageBoxButton.OK, MessageBoxImage.Warning);
+            AppMessageBox.Show("Veuillez d'abord générer le rapport Wi-Fi.", "Export", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -145,7 +145,7 @@ public partial class WifiReportDialog : Window
                 TxtFeedback.Text = $"Rapport exporté : {Path.GetFileName(sfd.FileName)}";
                 _onOutput($"[OK] Rapport Wi-Fi exporté vers : {sfd.FileName}");
 
-                var res = MessageBox.Show(
+                var res = AppMessageBox.Show(
                     $"Le rapport a été copié vers :\n{sfd.FileName}\n\nSouhaitez-vous l'ouvrir maintenant ?",
                     "Rapport exporté avec succès",
                     MessageBoxButton.YesNo,
@@ -158,7 +158,7 @@ public partial class WifiReportDialog : Window
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Erreur lors de la copie : {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                AppMessageBox.Show($"Erreur lors de la copie : {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

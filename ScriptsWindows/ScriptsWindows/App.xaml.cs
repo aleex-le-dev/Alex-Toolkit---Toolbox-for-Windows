@@ -24,7 +24,7 @@ public partial class App : Application
         DispatcherUnhandledException += (s, ev) =>
         {
             LogCrash("DispatcherUnhandledException", ev.Exception);
-            MessageBox.Show(
+            AppMessageBox.Show(
                 $"Une erreur est survenue :\n\n{ev.Exception.Message}\n\nUn fichier crash_log.txt a été généré.",
                 "Erreur Alex Toolkit",
                 MessageBoxButton.OK,
@@ -37,7 +37,7 @@ public partial class App : Application
             if (ev.ExceptionObject is Exception ex)
             {
                 LogCrash("AppDomainUnhandledException", ex);
-                MessageBox.Show(
+                AppMessageBox.Show(
                     $"Erreur critique :\n\n{ex.Message}\n\nConsultez crash_log.txt",
                     "Erreur critique",
                     MessageBoxButton.OK,

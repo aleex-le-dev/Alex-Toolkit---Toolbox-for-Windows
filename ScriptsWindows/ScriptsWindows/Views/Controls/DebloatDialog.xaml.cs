@@ -71,7 +71,7 @@ public partial class DebloatDialog : Window
         if (selected.Count == 0) return;
         bool allUsers = ChkAllUsers.IsChecked == true;
         string list = string.Join("\n", selected.Take(15).Select(a => "• " + a.FriendlyName)) + (selected.Count > 15 ? $"\n… et {selected.Count - 15} autre(s)" : "");
-        if (MessageBox.Show(this, $"Supprimer {selected.Count} application(s) ?\n\n{list}\n\n{(allUsers ? "Pour tous les comptes, sans réinstallation automatique." : "Pour le compte actuel uniquement.")}\nElles restent réinstallables depuis le Microsoft Store.",
+        if (AppMessageBox.Show(this, $"Supprimer {selected.Count} application(s) ?\n\n{list}\n\n{(allUsers ? "Pour tous les comptes, sans réinstallation automatique." : "Pour le compte actuel uniquement.")}\nElles restent réinstallables depuis le Microsoft Store.",
                             "Supprimer les applications", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
 
         SetBusy(true, $"Suppression de {selected.Count} application(s)…");

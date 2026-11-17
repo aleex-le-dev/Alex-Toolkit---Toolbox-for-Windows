@@ -427,7 +427,7 @@ public partial class WebsiteAnalyzerDialog : Window
         string? normalizedUrl = GetNormalizedTargetUrl();
         if (string.IsNullOrEmpty(normalizedUrl) || !Uri.TryCreate(normalizedUrl, UriKind.Absolute, out Uri? baseUri))
         {
-            MessageBox.Show("Veuillez saisir un domaine valide (ex: salutalex.fr).", "Domaine requis", MessageBoxButton.OK, MessageBoxImage.Information);
+            AppMessageBox.Show("Veuillez saisir un domaine valide (ex: salutalex.fr).", "Domaine requis", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -633,7 +633,7 @@ public partial class WebsiteAnalyzerDialog : Window
         string? normalizedUrl = GetNormalizedTargetUrl();
         if (string.IsNullOrEmpty(normalizedUrl) || !Uri.TryCreate(normalizedUrl, UriKind.Absolute, out Uri? baseUri))
         {
-            MessageBox.Show("Veuillez saisir un nom de domaine valide (ex: salutalex.fr).", "Domaine requis", MessageBoxButton.OK, MessageBoxImage.Information);
+            AppMessageBox.Show("Veuillez saisir un nom de domaine valide (ex: salutalex.fr).", "Domaine requis", MessageBoxButton.OK, MessageBoxImage.Information);
             TxtUrl.Focus();
             return;
         }
@@ -1605,11 +1605,11 @@ public partial class WebsiteAnalyzerDialog : Window
         try
         {
             Clipboard.SetText(BuildReportText());
-            MessageBox.Show("Le rapport complet (Synthèse + 21 Points + Speedtest + SEO + Top Mots-Clés) a été copié dans le presse-papiers !", "Rapport copié", MessageBoxButton.OK, MessageBoxImage.Information);
+            AppMessageBox.Show("Le rapport complet (Synthèse + 21 Points + Speedtest + SEO + Top Mots-Clés) a été copié dans le presse-papiers !", "Rapport copié", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Erreur lors de la copie : {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Warning);
+            AppMessageBox.Show($"Erreur lors de la copie : {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -1627,12 +1627,12 @@ public partial class WebsiteAnalyzerDialog : Window
             if (sfd.ShowDialog() == true)
             {
                 File.WriteAllText(sfd.FileName, BuildReportText(), Encoding.UTF8);
-                MessageBox.Show($"Rapport enregistré avec succès dans :\n{sfd.FileName}", "Export réussi", MessageBoxButton.OK, MessageBoxImage.Information);
+                AppMessageBox.Show($"Rapport enregistré avec succès dans :\n{sfd.FileName}", "Export réussi", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Erreur lors de l'export : {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Warning);
+            AppMessageBox.Show($"Erreur lors de l'export : {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 

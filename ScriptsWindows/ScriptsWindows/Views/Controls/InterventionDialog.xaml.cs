@@ -81,7 +81,7 @@ public partial class InterventionDialog : Window
         Closing += (_, e) =>
         {
             if (!_running) return;
-            if (MessageBox.Show(this, "L'intervention est en cours. L'arrêter et fermer ?", "Intervention en cours",
+            if (AppMessageBox.Show(this, "L'intervention est en cours. L'arrêter et fermer ?", "Intervention en cours",
                                 MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) e.Cancel = true;
             else _runCts?.Cancel();
         };

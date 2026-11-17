@@ -98,7 +98,7 @@ public partial class CrashDriverDialog : Window
     private async void BtnReinstall_Click(object sender, RoutedEventArgs e)
     {
         if (_busy || sender is not Button { Tag: ProblemDevice device }) return;
-        var confirm = MessageBox.Show(this,
+        var confirm = AppMessageBox.Show(this,
             $"Le périphérique « {device.Name} » va être supprimé puis redétecté : Windows réinstallera automatiquement son pilote.\n\nContinuer ?",
             "Réinstaller le périphérique", MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (confirm != MessageBoxResult.Yes) return;

@@ -44,8 +44,14 @@ public class ScriptTool
     /// <summary>Action à exécuter quand l'outil est lancé</summary>
     public Func<Action<string>, CancellationToken, Task>? Action { get; set; }
 
-    /// <summary>Action optionnelle pour générer un script autonome sur le Bureau</summary>
-    public Action<Action<string>?>? DesktopAction { get; init; }
+    /// <summary>
+    /// Optionnel : crée un script autonome sur le Bureau et retourne son chemin.
+    /// Sa présence affiche le bouton « Bureau » sur la carte de l'outil.
+    /// </summary>
+    public Func<Action<string>?, string>? DesktopAction { get; init; }
+
+    /// <summary>Explication affichée après la création du script sur le Bureau (et en info-bulle du bouton).</summary>
+    public string DesktopHint { get; init; } = "Double-cliquez sur ce fichier pour lancer l'opération sans ouvrir Alex Toolkit.";
 
     /// <summary>Points clés ou actions réalisées affichés sous forme de liste dans la carte</summary>
     public string[] Features { get; init; } = Array.Empty<string>();

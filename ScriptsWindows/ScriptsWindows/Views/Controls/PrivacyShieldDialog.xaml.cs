@@ -184,7 +184,7 @@ public partial class PrivacyShieldDialog : Window
 
     private async void BtnRestoreDefaults_Click(object sender, RoutedEventArgs e)
     {
-        var result = MessageBox.Show(this,
+        var result = AppMessageBox.Show(this,
             "Voulez-vous rétablir les paramètres de télémétrie et de diagnostic par défaut de Windows ?",
             "Revenir en arrière", MessageBoxButton.YesNo, MessageBoxImage.Question);
 

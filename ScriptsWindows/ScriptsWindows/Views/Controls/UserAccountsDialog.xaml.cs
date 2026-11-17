@@ -90,7 +90,7 @@ public partial class UserAccountsDialog : Window
     }
 
     private bool Confirm(string message, string title)
-        => MessageBox.Show(this, message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+        => AppMessageBox.Show(this, message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
 
     private async void BtnSetPassword_Click(object sender, RoutedEventArgs e)
     {

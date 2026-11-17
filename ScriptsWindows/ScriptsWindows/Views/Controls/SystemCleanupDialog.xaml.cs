@@ -192,7 +192,7 @@ public partial class SystemCleanupDialog : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Impossible de lancer Cleanmgr : {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+            AppMessageBox.Show($"Impossible de lancer Cleanmgr : {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -211,7 +211,7 @@ public partial class SystemCleanupDialog : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Impossible d'ouvrir les paramètres : {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+            AppMessageBox.Show($"Impossible d'ouvrir les paramètres : {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -219,7 +219,7 @@ public partial class SystemCleanupDialog : Window
     {
         if (_isBusy) return;
 
-        var result = MessageBox.Show(
+        var result = AppMessageBox.Show(
             "Voulez-vous lancer le nettoyage complet automatique (temporaires, cache WU, corbeille, navigateurs, DNS et presse-papiers) ?",
             "Confirmation du nettoyage complet",
             MessageBoxButton.YesNo,
@@ -257,7 +257,7 @@ public partial class SystemCleanupDialog : Window
 
         if (!doTemp && !doWu && !doRecycle && !doBrowsers && !doDnsAndClip && !doWinSxS)
         {
-            MessageBox.Show("Veuillez sélectionner au moins un élément à nettoyer.", "Aucun élément coché", MessageBoxButton.OK, MessageBoxImage.Information);
+            AppMessageBox.Show("Veuillez sélectionner au moins un élément à nettoyer.", "Aucun élément coché", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 

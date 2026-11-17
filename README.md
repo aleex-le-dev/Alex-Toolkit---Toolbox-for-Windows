@@ -13,25 +13,26 @@ by AleexLeDev – diagnostiquez, réparez, optimisez et sécurisez Windows 10 & 
 * **Intervention technicien & rapport client** – checkup en un clic (point de restauration, nettoyage, antivirus, DISM/SFC, mises à jour Winget) puis rapport HTML imprimable : machine, état avant / après, opérations avec résultat et durée, conclusion, journal et signatures.
 * **Bilan de santé & diagnostic** – tableau de bord complet (système, carte mère, BIOS, processeur, barrettes RAM, disques avec usure / température / heures / erreurs S.M.A.R.T., volumes, batterie, cartes réseau), audit complet dans la console, audit d'éligibilité Windows 11 24H2 / NPU Copilot+, gestion des programmes au démarrage et DxDiag.
 * **Pannes & pilotes** – écrans bleus des 90 derniers jours avec code d'arrêt traduit et cause probable, arrêts brutaux, périphériques en erreur (codes 10, 28, 43…) expliqués et réinstallables en un clic.
-* **Réparation système** – SFC & DISM avec suivi en direct, état et réinitialisation complète de Windows Update, CHKDSK interactif, déblocage du spouleur d'impression, gestion des services Windows, réparation du Microsoft Store et des icônes blanches, points de restauration et sauvegarde de tous les pilotes.
+* **Réparation système** – SFC & DISM avec suivi en direct, état et réinitialisation complète de Windows Update, CHKDSK interactif, centre de dépannage des imprimantes (état réel, page de test, file, réinstallation, pilotes, erreurs) avec script « Débloquer l'impression » à poser sur le Bureau, gestion des services Windows, réparation du Microsoft Store et des icônes blanches, points de restauration et sauvegarde de tous les pilotes.
 * **Démarrage & récupération** – console unifiée : mode sans échec (minimal ou réseau), redémarrage direct dans le BIOS/UEFI, accès à WinRE et reconstruction du magasin de démarrage BCD.
 * **Grand nettoyage** – mesure puis purge des fichiers temporaires, du cache Windows Update, de la corbeille, des caches navigateurs (Chrome, Edge, Brave, Firefox) et des miniatures, vidage DNS/presse-papier et nettoyage optionnel du magasin WinSxS. Un script de nettoyage peut être déposé sur le Bureau.
 * **Sécurité & confidentialité** – état de Microsoft Defender et analyse rapide, historique des plantages, processus les plus gourmands, bouclier anti-télémétrie réversible (télémétrie, identifiant publicitaire, suggestions du menu Démarrer).
 * **Désinfection** – détection et correction (avec sauvegarde) des détournements : fichier hosts, proxy WinINET / WinHTTP, tâches planifiées et démarrages masqués ou encodés ; analyses Defender complète et hors ligne, installation d'AdwCleaner et Malwarebytes.
 * **Comptes utilisateurs** – réinitialisation ou suppression de mot de passe, droits administrateur, activation, création et suppression de comptes locaux (fonctionne quelle que soit la langue de Windows).
-* **Mots de passe & licences** – mots de passe Wi-Fi enregistrés, clé de licence Windows d'origine (BIOS), historique récent des navigateurs, recherche de fichiers sensibles (`.ssh`, `.aws`, `.env`, certificats, coffres KeePass…).
+* **Mots de passe & licences** – mots de passe Wi-Fi enregistrés, clé de licence Windows d'origine (BIOS), historique récent des navigateurs, recherche de fichiers sensibles par nom (≈ 200 mots-clés : banque, identité, santé, contrats, crypto…), scans d'images et contenu (mots de passe en clair, IBAN, cartes, n° de sécurité sociale, clés privées et d'API, toujours masqués).
 * **Internet & réseau** – centre de contrôle réseau, changement de DNS en un clic, grand reset réseau en 7 étapes (TCP/IP, Winsock, DNS, ARP…), scanner Wi-Fi des réseaux voisins, rapport graphique des déconnexions, scanner des appareils de la box, liste des applications connectées et **benchmark DNS réel** (Cloudflare, Google, Quad9, OpenDNS).
 * **Performances & gaming** – bascule normal / performances maximales, optimiseur de latence (HAGS, désactivation de Nagle, priorité CPU aux jeux), **banc d'essai visuel** (jauge de la note globale, notes par composant, mesures réelles en Mo/s et Go/s, comparatif avec des PC types ou une évaluation précédente, historique) et rapport énergétique de la batterie.
 * **Disques & migration** – gestion des disques, Diskpart, optimisation/TRIM, BitLocker, et **sauvegarde / transfert de profil** vers un nouveau PC (fichiers personnels, favoris Chrome / Edge / Firefox, réseaux Wi-Fi, liste des logiciels réinstallable via Winget).
-* **Applications & mises à jour** – installation groupée des logiciels du quotidien via Winget (Chrome, VLC, 7-Zip, Sumatra PDF, PowerShell, Office…), ArtCraft Launcher, mise à jour de tous les programmes en un clic, et suppression des applications préinstallées inutiles (bloatware) sans jamais toucher aux composants essentiels.
+* **Applications & mises à jour** – installation groupée des logiciels du quotidien via Winget (Chrome, VLC, 7-Zip, Sumatra PDF, PowerShell, Office, ArtCraft Launcher…), mise à jour de tous les programmes en un clic, et suppression des applications préinstallées inutiles (bloatware) sans jamais toucher aux composants essentiels.
 * **Personnalisation** – menu contextuel classique Windows 10 / moderne Windows 11, ouverture de CMD ou PowerShell en administrateur depuis le clic droit, boutons Éteindre / Redémarrer sur le Bureau, dossier *God Mode*.
 * **Audit de site web** – note globale A+ à D, checklist de 21 contrôles avant mise en ligne, speedtest (DNS, TLS, TTFB), analyse SEO (aperçu Google, structure H1-H6, mots-clés) et inspection SSL / en-têtes HTTP.
 
 ### Interface
 
-* **Console latérale intégrée** – affiche en direct la sortie des commandes PowerShell et CMD avec code couleur (erreurs, succès, avertissements), redimensionnable, zoom avec *Ctrl + molette*. Les barres de progression (SFC, DISM, winget) se mettent à jour sur une seule ligne.
-* **Un script à la fois** – pendant l'exécution, les boutons des autres outils sont grisés ; fermer la console interrompt proprement le script en cours.
-* **Recherche instantanée** parmi les 49 outils (titre, description, mots-clés), **favoris** persistants et barre latérale qui se replie automatiquement.
+* **Une fenêtre par outil** – chaque outil qui affiche un résultat a sa propre interface (listes filtrables, indicateurs, étapes suivies une à une, exports) ; les autres ouvrent directement l'outil Windows concerné.
+* **Journal d'exécution** – trace de tout ce qui a été lancé (résultats, erreurs, sortie des commandes PowerShell / CMD avec code couleur), ouvert à la demande via le bouton **Journal** (un point signale du nouveau contenu) et automatiquement en cas d'erreur. Redimensionnable, zoom avec *Ctrl + molette*, barres de progression (SFC, DISM, winget) sur une seule ligne.
+* **Un outil à la fois** – pendant l'exécution, les boutons des autres outils sont grisés.
+* **Recherche instantanée** parmi les 48 outils (titre, description, mots-clés), **favoris** persistants et barre latérale qui se replie automatiquement.
 * **Interface sobre et cohérente** – palette neutre avec une seule couleur d'accent, icônes Windows (Segoe Fluent Icons) et **2 thèmes** *Sombre* (par défaut) et *Clair*, appliqués à toutes les fenêtres et mémorisés d'une session à l'autre.
 * **Mises à jour intégrées** – notification discrète lorsqu'une nouvelle version est publiée sur GitHub, téléchargement et remplacement automatiques.
 
@@ -39,7 +40,7 @@ by AleexLeDev – diagnostiquez, réparez, optimisez et sécurisez Windows 10 & 
 
 ## Catalogue des outils
 
-13 catégories, 49 outils. Chaque outil est enregistré dans [`Core/ToolRegistry.cs`](ScriptsWindows/ScriptsWindows/Core/ToolRegistry.cs) ; l'arborescence complète (avec les commandes associées) peut être prévisualisée et copiée depuis la page **Paramètres** de l'application.
+13 catégories, 48 outils. Chaque outil est enregistré dans [`Core/ToolRegistry.cs`](ScriptsWindows/ScriptsWindows/Core/ToolRegistry.cs) ; l'arborescence complète (avec les commandes associées) peut être prévisualisée et copiée depuis la page **Paramètres** de l'application.
 
 | Catégorie | Sous-catégorie | Outils |
 |---|---|---|
@@ -50,7 +51,7 @@ by AleexLeDev – diagnostiquez, réparez, optimisez et sécurisez Windows 10 & 
 | 🖥️ **Performances & énergie** | Gestion de l'alimentation et vitesse | Changer la vitesse du PC (Normal / Rapide) · Optimiseur de latence et Mode Gaming Ultime |
 | | Banc d'essai et performances | Tester la puissance globale de mon PC (WinSAT) · Détecter ce qui vide la batterie |
 | 🔧 **Dépannage & réparation** | Réparation du système et des disques | Réparer les fichiers système (SFC & DISM) · Réparer les erreurs de disque (CHKDSK) |
-| | Dépannage de l'imprimante et des services | Débloquer l'imprimante · Gérer et redémarrer les services Windows |
+| | Dépannage de l'imprimante et des services | Dépannage des imprimantes (déblocage en 1 clic + script Bureau) · Gérer et redémarrer les services Windows |
 | | Boutique d'applications et affichage | Réparer le Microsoft Store et les icônes blanches |
 | | Sauvegardes et points de retour | Créer ou restaurer un point de retour · Sauvegarder les pilotes |
 | 🧹 **Nettoyage & espace disque** | Nettoyage système et disque | Grand nettoyage du PC et des fichiers inutiles |
@@ -63,7 +64,6 @@ by AleexLeDev – diagnostiquez, réparez, optimisez et sécurisez Windows 10 & 
 | | Santé et sécurité de vos fichiers | Optimiser et accélérer les disques · BitLocker |
 | | Sauvegarde et migration | Sauvegarder et transférer un profil utilisateur |
 | 📦 **Installer vos logiciels** | Installation et déploiement rapide | Installer vos applications indispensables |
-| | Suite créative & multimédia | Installer ArtCraft Launcher |
 | | Nettoyage des applications | Supprimer les applications préinstallées |
 | 🔄 **Mises à jour des programmes** | Gestionnaire de mises à jour | Mettre à jour tous vos programmes (Winget) |
 | 🛡️ **Sécurité & antivirus** | Protection globale de votre ordinateur | Centre de protection antivirus et surveillance |
@@ -98,7 +98,7 @@ L'application et tous les modules décrits ci-dessus sont gratuits et open sourc
 
 ### Prérequis
 * Windows 10 ou Windows 11, 64 bits.
-* [Runtime .NET 8 Desktop (x64)](https://dotnet.microsoft.com/download/dotnet/8.0) – l'exécutable est publié en mode *framework-dependent* : s'il manque, Windows propose de le télécharger au premier lancement.
+* Aucun logiciel à installer : le runtime .NET 10 est **inclus dans l'exécutable** (≈ 68 Mo). Fonctionne hors ligne, depuis une clé USB.
 * Droits administrateur pour les actions système (DISM/SFC, pilotes, BCD, réseau, services).
 
 ---
@@ -130,7 +130,7 @@ Données stockées sur votre machine :
 
 ## Développement & compilation
 
-Prérequis : [SDK .NET 8](https://dotnet.microsoft.com/download/dotnet/8.0) (le runtime seul ne suffit pas pour compiler).
+Prérequis : [SDK .NET 10](https://dotnet.microsoft.com/download/dotnet/10.0) ou plus récent (le runtime seul ne suffit pas pour compiler).
 
 ```powershell
 # Cloner le dépôt
@@ -143,7 +143,7 @@ cd SCRIPT-WINDOWS-ALEEXLEDEV
 
 `build.bat` :
 1. incrémente automatiquement la version (+0.0.1) dans le `.csproj` via `ScriptsWindows/bump_version.ps1` ;
-2. publie en Release x64, fichier unique, pré-compilé ReadyToRun ;
+2. publie en Release x64, fichier unique **autonome** (runtime .NET inclus, compressé), pré-compilé ReadyToRun ;
 3. supprime les anciens exécutables et dépose `AlexToolkit_vX.Y.Z.exe` à la racine, prêt à être joint à une release GitHub.
 
 ### Commandes manuelles
@@ -153,7 +153,7 @@ cd SCRIPT-WINDOWS-ALEEXLEDEV
 dotnet build ScriptsWindows/ScriptsWindows/ScriptsWindows.csproj -c Debug
 
 # Publication Release fichier unique (sans incrément de version)
-dotnet publish ScriptsWindows/ScriptsWindows/ScriptsWindows.csproj -c Release -r win-x64 --no-self-contained -p:PublishSingleFile=true
+dotnet publish ScriptsWindows/ScriptsWindows/ScriptsWindows.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
 
 # Supprimer bin/, obj/ et les logs résiduels
 .\clean.bat
@@ -189,13 +189,13 @@ SCRIPT-WINDOWS-ALEEXLEDEV/
     ├── bump_version.ps1              ← Incrément automatique de <Version> dans le .csproj
     ├── ScriptsWindows.sln
     └── ScriptsWindows/
-        ├── ScriptsWindows.csproj     ← .NET 8 WPF, single-file, ReadyToRun
+        ├── ScriptsWindows.csproj     ← .NET 10 WPF, single-file, ReadyToRun
         ├── App.xaml / .cs            ← Point d'entrée, élévation UAC, gestion globale des erreurs
-        ├── MainWindow.xaml / .cs     ← Barre latérale, recherche, navigation, console de sortie
+        ├── MainWindow.xaml / .cs     ← Barre latérale, recherche, navigation, journal d'exécution
         ├── Assets/Styles/            ← Theme.xaml (jetons de couleur, typo, rayons), Controls.xaml (boutons, navigation, défilement)
         ├── Models/                   ← ScriptTool, ToolCategory, UpdateModels
         ├── Core/
-        │   ├── ToolRegistry.cs              ← Catalogue des 49 outils + CommandMap
+        │   ├── ToolRegistry.cs              ← Catalogue des 48 outils + CommandMap
         │   ├── PowerShellRunner.cs          ← Exécution PowerShell asynchrone (UTF-8, annulation)
         │   ├── CommandRunner.cs             ← Exécution CMD / winget / netsh… avec sortie live
         │   ├── ScriptExecutionCoordinator.cs← Un seul script à la fois, verrouillage et interruption
@@ -212,13 +212,16 @@ SCRIPT-WINDOWS-ALEEXLEDEV/
         │   ├── PersonalizationService · InnovationService · UpdateService
         │   ├── InterventionService (checkup + rapport) · TroubleshootService (BSOD, périphériques)
         │   ├── ProfileMigrationService · MalwareCleanupService · DebloatService
+        │   ├── PrinterCenterService · InstalledAppsService · SensitiveDataScanner · BenchmarkService
         └── Views/
             ├── SectionViewBuilder.cs ← Construction des pages par sous-catégories
+            ├── AdaptiveLayout.cs     ← Grille de cartes adaptative + sous-catégories côte à côte
             ├── Pages/                ← Une page par catégorie + Favoris, Recherche, Paramètres
             └── Controls/             ← ToolCard + fenêtres spécialisées (DiagnosticCenter,
                                          NetworkCenter, SecurityCenter, BootRecovery, SystemCleanup,
                                          LanScanner, DnsBenchmark, WebsiteAnalyzer, Intervention, CrashDriver,
-                                         UserAccounts, ProfileMigration, MalwareCleanup, Debloat, Update…)
+                                         UserAccounts, ProfileMigration, MalwareCleanup, Debloat, SensitiveDocs, WifiPasswords,
+                                         WindowsKey, BrowserHistory, NetworkReset, DefenderScan, DriverBackup, Battery, Update…)
 ```
 
 ---

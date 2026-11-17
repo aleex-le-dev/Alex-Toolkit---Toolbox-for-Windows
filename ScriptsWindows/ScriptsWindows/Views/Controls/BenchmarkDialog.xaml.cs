@@ -57,7 +57,7 @@ public partial class BenchmarkDialog : Window
         Closing += (_, e) =>
         {
             if (_runCts == null) return;
-            if (MessageBox.Show(this, "L'évaluation est en cours. L'arrêter et fermer ?", "Évaluation en cours",
+            if (AppMessageBox.Show(this, "L'évaluation est en cours. L'arrêter et fermer ?", "Évaluation en cours",
                                 MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) e.Cancel = true;
             else _runCts.Cancel();
         };
@@ -393,7 +393,7 @@ public partial class BenchmarkDialog : Window
     {
         if (_runCts != null) { _runCts.Cancel(); return; }
 
-        if (_hw.OnBattery && MessageBox.Show(this, "Le PC est sur batterie : les notes seront sous-estimées.\nBranchez le chargeur pour un résultat fiable.\n\nLancer quand même ?",
+        if (_hw.OnBattery && AppMessageBox.Show(this, "Le PC est sur batterie : les notes seront sous-estimées.\nBranchez le chargeur pour un résultat fiable.\n\nLancer quand même ?",
                                              "Sur batterie", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
 
         _runCts = CancellationTokenSource.CreateLinkedTokenSource(_ct);

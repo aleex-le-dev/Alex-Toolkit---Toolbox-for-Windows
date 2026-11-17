@@ -33,7 +33,7 @@ public static class FolderDialogHelper
             {
                 if (!string.IsNullOrWhiteSpace(confirmQuestion))
                 {
-                    var result = MessageBox.Show(
+                    var result = AppMessageBox.Show(
                         Application.Current.MainWindow,
                         confirmQuestion,
                         confirmTitle ?? "Confirmation",
@@ -86,7 +86,7 @@ public static class FolderDialogHelper
             {
                 if (!string.IsNullOrWhiteSpace(confirmQuestion))
                 {
-                    var result = MessageBox.Show(
+                    var result = AppMessageBox.Show(
                         Application.Current.MainWindow,
                         confirmQuestion,
                         confirmTitle ?? "Confirmation",

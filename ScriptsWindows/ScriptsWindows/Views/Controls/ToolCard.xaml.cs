@@ -67,6 +67,7 @@ public partial class ToolCard : UserControl
         PopulateFeatures(tool);
 
         BtnDesktop.Visibility = tool.DesktopAction != null ? Visibility.Visible : Visibility.Collapsed;
+        BtnDesktop.ToolTip = $"Créer sur le Bureau un script autonome : {tool.DesktopHint}";
     }
 
     private void PopulateFeatures(ScriptTool tool)
@@ -164,7 +165,7 @@ public partial class ToolCard : UserControl
         // ── Exécution exclusive via le coordinateur global ──────────
         if (!ScriptExecutionCoordinator.TryBeginExecution(_tool, out var ct))
         {
-            MessageBox.Show(
+            AppMessageBox.Show(
                 $"Un script est déjà en cours : {ScriptExecutionCoordinator.ActiveToolTitle}\n\nAttendez qu'il se termine avant d'en lancer un autre.",
                 "Script en cours",
                 MessageBoxButton.OK,
@@ -219,22 +220,18 @@ public partial class ToolCard : UserControl
             var mainWin = Application.Current.MainWindow as MainWindow;
             Action<string> log = _outputCallback ?? (msg => mainWin?.AppendOutput(msg));
 
-            _tool.DesktopAction(log);
+            string scriptPath = _tool.DesktopAction(log);
 
-            var desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            var scriptPath = System.IO.Path.Combine(desktop, "Nettoyage_Systeme_Et_Disque.bat");
-
-            MessageBox.Show(
-                $"Le script de nettoyage automatique a été créé avec succès sur votre Bureau :\n\n" +
-                $"📁 {scriptPath}\n\n" +
-                "Il vous suffit désormais de double-cliquer dessus à tout moment pour lancer le nettoyage complet en PowerShell avec affichage détaillé des gains d'espace !",
+            AppMessageBox.Show(
+                $"Le script « {_tool.Title} » a été créé sur votre Bureau :\n\n" +
+                $"{scriptPath}\n\n{_tool.DesktopHint}",
                 "Script ajouté au Bureau — Alex Toolkit",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Impossible de créer le script sur le Bureau : {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+            AppMessageBox.Show($"Impossible de créer le script sur le Bureau : {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 }

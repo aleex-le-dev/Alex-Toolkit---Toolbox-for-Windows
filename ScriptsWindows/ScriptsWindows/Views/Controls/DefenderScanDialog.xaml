@@ -1,0 +1,183 @@
+<Window xmlns:ui="http://schemas.modernwpf.com/2019" ui:WindowHelper.UseModernWindowStyle="True"
+        x:Class="ScriptsWindows.Views.Controls.DefenderScanDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Analyse antivirus"
+        Width="900" Height="720"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize" MinWidth="760" MinHeight="600"
+        Background="{DynamicResource BgDeep}"
+        Foreground="{DynamicResource TextPrimary}"
+        FontFamily="{StaticResource FontMain}">
+
+    <Window.Resources>
+        <Style x:Key="Kpi" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource BgCard}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="14,10"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- En-tête -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,16">
+            <Border x:Name="HeaderBadge" Width="40" Height="40" CornerRadius="8" Background="{DynamicResource AccentDim}" Margin="0,0,14,0">
+                <TextBlock x:Name="HeaderGlyph" Text="&#xEA18;" FontFamily="{StaticResource FontIcon}" FontSize="18" Foreground="{DynamicResource AccentText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Analyse antivirus" FontFamily="{StaticResource FontDisplay}" FontSize="19" FontWeight="SemiBold"/>
+                <TextBlock Text="Microsoft Defender : état de la protection, mise à jour des signatures, analyse rapide ou complète et menaces détectées."
+                           Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- État -->
+        <UniformGrid Grid.Row="1" Columns="3" Margin="0,0,0,10">
+            <Border Style="{StaticResource Kpi}" Margin="0,0,6,0">
+                <StackPanel>
+                    <TextBlock Text="PROTECTION EN TEMPS RÉEL" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}"/>
+                    <TextBlock x:Name="TxtRealtime" Text="…" FontSize="16" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Kpi}" Margin="3,0,3,0">
+                <StackPanel>
+                    <TextBlock Text="SIGNATURES" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}"/>
+                    <TextBlock x:Name="TxtSignatures" Text="…" FontSize="16" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                    <TextBlock x:Name="TxtSigVersion" Text="" FontSize="11" Foreground="{DynamicResource TextMuted}" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Kpi}" Margin="6,0,0,0">
+                <StackPanel>
+                    <TextBlock Text="DERNIÈRE ANALYSE" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}"/>
+                    <TextBlock x:Name="TxtLastScan" Text="…" FontSize="16" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                    <TextBlock x:Name="TxtLastFull" Text="" FontSize="11" Foreground="{DynamicResource TextMuted}" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <!-- Autre antivirus / erreur -->
+        <Border Grid.Row="2" x:Name="NoticeBox" Background="{DynamicResource WarningBg}" CornerRadius="8" Padding="14,9" Margin="0,0,0,10" Visibility="Collapsed">
+            <DockPanel>
+                <TextBlock Text="&#xE946;" FontFamily="{StaticResource FontIcon}" FontSize="13" Foreground="{DynamicResource WarningText}" Margin="0,1,10,0" VerticalAlignment="Top"/>
+                <TextBlock x:Name="TxtNotice" TextWrapping="Wrap" FontSize="12"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Actions + progression -->
+        <Border Grid.Row="3" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="16,12" Margin="0,0,0,14">
+            <StackPanel>
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button x:Name="BtnUpdate" Style="{StaticResource ActionButton}" Margin="0,0,8,0" Click="BtnUpdate_Click" IsEnabled="False">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE896;" FontFamily="{StaticResource FontIcon}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Mettre à jour" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnFull" Style="{StaticResource ActionButton}" Margin="0,0,8,0" Click="BtnFull_Click" IsEnabled="False"
+                                ToolTip="Analyse tous les fichiers du PC : peut durer plus d'une heure">
+                            <TextBlock Text="Analyse complète"/>
+                        </Button>
+                        <Button x:Name="BtnQuick" Style="{StaticResource PrimaryActionButton}" Click="BtnQuick_Click" IsEnabled="False"
+                                ToolTip="Analyse la mémoire et les emplacements où se cachent les menaces (quelques minutes)">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE721;" FontFamily="{StaticResource FontIcon}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Analyse rapide" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock x:Name="TxtActionTitle" Text="Prêt" FontWeight="SemiBold" FontSize="13"/>
+                        <TextBlock x:Name="TxtActionDetail" Text="Mettez à jour les signatures puis lancez une analyse rapide." Foreground="{DynamicResource TextSecondary}" FontSize="11.5" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </DockPanel>
+                <ProgressBar x:Name="ProgAction" Height="3" IsIndeterminate="True" Margin="0,12,0,0" Visibility="Collapsed"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Menaces -->
+        <Grid Grid.Row="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <DockPanel Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right" x:Name="BtnRemove" Style="{StaticResource DangerActionButton}" Visibility="Collapsed" Click="BtnRemove_Click"
+                        ToolTip="Applique l'action de Defender (quarantaine / suppression) aux menaces encore actives">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE74D;" FontFamily="{StaticResource FontIcon}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Neutraliser les menaces actives" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <TextBlock Text="Menaces détectées" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+            </DockPanel>
+            <Border Grid.Row="1" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8">
+                <Grid>
+                    <ItemsControl x:Name="ListThreats">
+                        <ItemsControl.Template>
+                            <ControlTemplate TargetType="ItemsControl">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto"><ItemsPresenter/></ScrollViewer>
+                            </ControlTemplate>
+                        </ItemsControl.Template>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{DynamicResource Border}" BorderThickness="0,0,0,1" Padding="16,10">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="30" Height="30" CornerRadius="15" Background="{Binding Bg}" Margin="0,0,12,0" VerticalAlignment="Top">
+                                            <TextBlock Text="{Binding Glyph}" FontFamily="{StaticResource FontIcon}" FontSize="13" Foreground="{Binding Fg}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12.5" FontFamily="{StaticResource FontMono}" TextTrimming="CharacterEllipsis"/>
+                                                <Border Background="{Binding Bg}" CornerRadius="4" Padding="7,1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding SeverityText}" FontSize="10.5" FontWeight="SemiBold" Foreground="{Binding Fg}"/>
+                                                </Border>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Resources}" FontSize="11" Foreground="{DynamicResource TextMuted}" TextTrimming="CharacterEllipsis" Margin="0,3,0,0" ToolTip="{Binding Resources}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center" MinWidth="150">
+                                            <TextBlock Text="{Binding StatusText}" FontSize="12" FontWeight="SemiBold" Foreground="{Binding StatusFg}" HorizontalAlignment="Right"/>
+                                            <TextBlock Text="{Binding DateText}" FontSize="11" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Right" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <StackPanel x:Name="PanelNoThreat" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Border x:Name="NoThreatBadge" Width="48" Height="48" CornerRadius="24" Background="{DynamicResource SuccessBg}" HorizontalAlignment="Center" Visibility="Collapsed">
+                            <TextBlock Text="&#xE73E;" FontFamily="{StaticResource FontIcon}" FontSize="20" Foreground="{DynamicResource SuccessText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock x:Name="TxtNoThreat" Text="Lecture de l'historique des menaces…" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Pied -->
+        <DockPanel Grid.Row="5" Margin="0,14,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="Sécurité Windows" Style="{StaticResource ActionButton}" Margin="0,0,8,0" Click="BtnWindowsSecurity_Click"
+                        ToolTip="Ouvre l'application Sécurité Windows (historique de protection, exclusions, quarantaine)"/>
+                <Button Content="Fermer" Style="{StaticResource ActionButton}" Click="BtnClose_Click"/>
+            </StackPanel>
+            <TextBlock x:Name="TxtStatus" Foreground="{DynamicResource TextSecondary}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+        </DockPanel>
+    </Grid>
+</Window>

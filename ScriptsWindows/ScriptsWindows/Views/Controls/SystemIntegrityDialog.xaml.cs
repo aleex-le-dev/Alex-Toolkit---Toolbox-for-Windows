@@ -54,7 +54,7 @@ public partial class SystemIntegrityDialog : Window
     private async void BtnWuReset_Click(object sender, RoutedEventArgs e)
     {
         if (_isBusy) return;
-        var confirm = MessageBox.Show(this,
+        var confirm = AppMessageBox.Show(this,
             "Les services Windows Update vont être arrêtés, puis les caches SoftwareDistribution et catroot2 recréés.\n\n" +
             "L'historique affiché dans Windows Update sera vidé (les mises à jour installées ne sont pas touchées). Continuer ?",
             "Réinitialiser Windows Update", MessageBoxButton.YesNo, MessageBoxImage.Question);

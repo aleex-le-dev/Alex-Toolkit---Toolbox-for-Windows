@@ -34,7 +34,7 @@ public partial class ProfileMigrationDialog : Window
         Closing += (_, e) =>
         {
             if (!_running) return;
-            if (MessageBox.Show(this, "Une copie est en cours. L'arrêter et fermer ?", "Copie en cours", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            if (AppMessageBox.Show(this, "Une copie est en cours. L'arrêter et fermer ?", "Copie en cours", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 e.Cancel = true;
             else _runCts?.Cancel();
         };
@@ -69,7 +69,7 @@ public partial class ProfileMigrationDialog : Window
             var drive = new DriveInfo(Path.GetPathRoot(dlg.FolderName)!);
             if (drive.IsReady && drive.AvailableFreeSpace < needed)
             {
-                MessageBox.Show(this, $"Espace insuffisant sur {drive.Name} : {ProfileMigrationService.FormatSize(drive.AvailableFreeSpace)} libres pour ≈ {ProfileMigrationService.FormatSize(needed)} à copier.",
+                AppMessageBox.Show(this, $"Espace insuffisant sur {drive.Name} : {ProfileMigrationService.FormatSize(drive.AvailableFreeSpace)} libres pour ≈ {ProfileMigrationService.FormatSize(needed)} à copier.",
                                 "Espace insuffisant", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -92,7 +92,7 @@ public partial class ProfileMigrationDialog : Window
         var manifest = ProfileMigrationService.ReadManifest(dlg.FolderName);
         if (manifest == null)
         {
-            MessageBox.Show(this, $"Ce dossier n'est pas une sauvegarde Alex Toolkit (fichier {ProfileMigrationService.ManifestName} absent).",
+            AppMessageBox.Show(this, $"Ce dossier n'est pas une sauvegarde Alex Toolkit (fichier {ProfileMigrationService.ManifestName} absent).",
                             "Sauvegarde introuvable", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -102,11 +102,11 @@ public partial class ProfileMigrationDialog : Window
 
         bool reinstall = false;
         if (toRestore.Any(i => i.Kind == MigrationKind.Apps))
-            reinstall = MessageBox.Show(this, "Réinstaller automatiquement les logiciels de l'ancien PC via Winget ?\n(Peut prendre longtemps ; les logiciels indisponibles sont ignorés.)",
+            reinstall = AppMessageBox.Show(this, "Réinstaller automatiquement les logiciels de l'ancien PC via Winget ?\n(Peut prendre longtemps ; les logiciels indisponibles sont ignorés.)",
                                         "Logiciels", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
 
         string summary = string.Join(", ", toRestore.Select(i => i.Label));
-        if (MessageBox.Show(this, $"Sauvegarde de « {manifest.User} » ({manifest.Computer}) du {manifest.Date:dd/MM/yyyy HH:mm}.\n\nRestaurer : {summary} ?",
+        if (AppMessageBox.Show(this, $"Sauvegarde de « {manifest.User} » ({manifest.Computer}) du {manifest.Date:dd/MM/yyyy HH:mm}.\n\nRestaurer : {summary} ?",
                             "Restaurer", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
 
         await RunAsync("Restauration en cours…", (log, ct) => ProfileMigrationService.RestoreAsync(toRestore, dlg.FolderName, reinstall, log, ct));

@@ -309,7 +309,7 @@ public partial class DnsBenchmarkDialog : Window
     {
         if (sender is Button btn && btn.DataContext is DnsBenchItem item)
         {
-            var confirm = MessageBox.Show(this,
+            var confirm = AppMessageBox.Show(this,
                 $"Voulez-vous appliquer le serveur {item.Name} ({item.PrimaryIp} / {item.SecondaryIp}) sur vos cartes réseau actives ?\n(Vous pourrez revenir au DHCP automatique à tout moment).",
                 "Configurer le DNS", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
@@ -330,13 +330,13 @@ Clear-DnsClientCache -ErrorAction SilentlyContinue
             // Mettre à jour immédiatement le DNS actif et l'UI
             RefreshActiveDnsDisplay();
 
-            MessageBox.Show(this, $"Le serveur {item.Name} est désormais actif sur votre connexion !", "DNS appliqué avec succès", MessageBoxButton.OK, MessageBoxImage.Information);
+            AppMessageBox.Show(this, $"Le serveur {item.Name} est désormais actif sur votre connexion !", "DNS appliqué avec succès", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 
     private async void BtnRestoreDhcp_Click(object sender, RoutedEventArgs e)
     {
-        var confirm = MessageBox.Show(this,
+        var confirm = AppMessageBox.Show(this,
             "Souhaitez-vous rétablir l'attribution automatique du DNS par votre box Internet (DHCP par défaut) ?",
             "Revenir en arrière (DHCP)", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
@@ -357,7 +357,7 @@ Clear-DnsClientCache -ErrorAction SilentlyContinue
         // Mettre à jour immédiatement le DNS actif et l'UI
         RefreshActiveDnsDisplay();
 
-        MessageBox.Show(this, "Votre connexion utilise de nouveau le DNS automatique par défaut de votre box Internet (DHCP).", "DHCP rétabli", MessageBoxButton.OK, MessageBoxImage.Information);
+        AppMessageBox.Show(this, "Votre connexion utilise de nouveau le DNS automatique par défaut de votre box Internet (DHCP).", "DHCP rétabli", MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void BtnClose_Click(object sender, RoutedEventArgs e)

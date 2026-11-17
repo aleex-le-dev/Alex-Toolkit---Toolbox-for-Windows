@@ -42,7 +42,7 @@ public partial class UpdateDialog : Window
     {
         if (_isUpdating)
         {
-            var res = MessageBox.Show(
+            var res = AppMessageBox.Show(
                 "Le téléchargement de la mise à jour est en cours. Souhaitez-vous vraiment l'interrompre ?",
                 "Téléchargement en cours",
                 MessageBoxButton.YesNo,
@@ -170,7 +170,7 @@ public partial class UpdateDialog : Window
         if (_lastResult?.LatestRelease == null) return;
         var release = _lastResult.LatestRelease;
 
-        var confirm = MessageBox.Show(
+        var confirm = AppMessageBox.Show(
             $"Le nouvel exécutable d'Alex Toolkit ({release.TagName}) va être téléchargé.\n" +
             "Dès la fin du téléchargement, l'application se fermera, remplacera le binaire existant et redémarrera automatiquement.\n\n" +
             "Voulez-vous continuer ?",
@@ -224,12 +224,12 @@ public partial class UpdateDialog : Window
         }
         catch (OperationCanceledException)
         {
-            MessageBox.Show("Téléchargement de la mise à jour interrompu.", "Mise à jour annulée", MessageBoxButton.OK, MessageBoxImage.Information);
+            AppMessageBox.Show("Téléchargement de la mise à jour interrompu.", "Mise à jour annulée", MessageBoxButton.OK, MessageBoxImage.Information);
             DownloadProgressPanel.Visibility = Visibility.Collapsed;
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
+            AppMessageBox.Show(
                 $"Erreur lors du téléchargement de la mise à jour :\n{ex.Message}\n\nVous pouvez télécharger manuellement le binaire via le bouton 'Voir sur GitHub'.",
                 "Erreur de mise à jour",
                 MessageBoxButton.OK,
@@ -310,7 +310,7 @@ public partial class UpdateDialog : Window
             ProgDownload.Value = 100;
             TxtDownloadProgressPct.Text = "100%";
 
-            var choice = MessageBox.Show(
+            var choice = AppMessageBox.Show(
                 $"Le fichier exécutable a été enregistré avec succès dans :\n{targetPath}\n\nSouhaitez-vous ouvrir le dossier contenant le fichier ?",
                 "Téléchargement réussi",
                 MessageBoxButton.YesNo,
@@ -324,11 +324,11 @@ public partial class UpdateDialog : Window
         }
         catch (OperationCanceledException)
         {
-            MessageBox.Show("Téléchargement interrompu.", "Annulé", MessageBoxButton.OK, MessageBoxImage.Information);
+            AppMessageBox.Show("Téléchargement interrompu.", "Annulé", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Échec du téléchargement :\n{ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+            AppMessageBox.Show($"Échec du téléchargement :\n{ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {

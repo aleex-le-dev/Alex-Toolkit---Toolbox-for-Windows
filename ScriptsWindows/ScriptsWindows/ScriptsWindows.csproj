@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <AssemblyName>AlexToolkit</AssemblyName>
     <RootNamespace>ScriptsWindows</RootNamespace>
@@ -10,9 +10,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
-    <!-- Publication .exe unique autonome -->
+    <!-- Publication .exe unique autonome : le runtime .NET 10 Desktop est INCLUS dans l'exe.
+         Aucune installation ni téléchargement sur le PC cible (fonctionne hors ligne, sur clé USB). -->
     <PublishSingleFile>true</PublishSingleFile>
-    <SelfContained>false</SelfContained>
+    <SelfContained>true</SelfContained>
+    <!-- Compression du contenu embarqué : ≈ 65 Mo au lieu de ≈ 150 Mo -->
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
 
@@ -30,13 +33,18 @@
     <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
 
     <!-- ── Métadonnées & Icône ─────────────────────────────────────── -->
-    <Version>4.2.27</Version>
+    <Version>4.2.38</Version>
     <Company>AleexLeDev</Company>
     <Product>Alex Toolkit</Product>
     <Copyright>© 2026 AleexLeDev</Copyright>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>
 
+
+  <ItemGroup>
+    <!-- AppMessageBox (boîte de message au thème de l'application) accessible partout -->
+    <Using Include="ScriptsWindows.Core" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- UI Fluent Design Windows 11 -->

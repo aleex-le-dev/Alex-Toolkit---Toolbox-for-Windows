@@ -36,6 +36,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         Loaded += MainWindow_Loaded;
         OutputBox.PreviewMouseWheel += OutputBox_PreviewMouseWheel;
+        MainRootGrid.SizeChanged += (_, _) => { if (OutputPanel.Visibility == Visibility.Visible) LayoutConsole(); };
     }
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -111,34 +112,79 @@ public partial class MainWindow : Window
 
     // ─── Console Terminal Latéral ────────────────────────────────────
 
+    // Géométrie des cartes (ToolCard : 325 px + marge droite 12) et de la page
+    // (marges 28 + 28, retrait des sections 6, barre de défilement ≈ 12).
+    private const double CardStep          = 325 + 12;
+    private const double PageChrome        = 28 + 28 + 6 + 12;
+    private const double SidebarExpanded   = 240;
+    private const double ConsoleMinWidth   = 340;
+
+    /// <summary>Largeur de la zone des cartes choisie par l'utilisateur (poignée) ; null = automatique.</summary>
+    private double? _userContentWidth;
+
     /// <summary>
-    /// Ajuste la largeur de la console à l'ouverture pour être compacte et garantir que 2 cartes d'outils restent côte à côte.
+    /// Console ouverte : la zone des cartes prend exactement un nombre entier de colonnes de cartes
+    /// et la console occupe tout le reste (plus de vide entre la dernière carte et la console).
+    /// Le nombre de colonnes est calculé barre latérale dépliée : les cartes ne se réorganisent pas
+    /// quand la barre se replie / se déplie, seule la console s'élargit / se rétrécit.
     /// </summary>
-    private void AdjustConsoleWidth()
+    private void LayoutConsole()
     {
-        double available = ActualWidth - 240; // 240px = largeur sidebar gauche
-        if (available > 600)
+        double total = MainRootGrid.ActualWidth;
+        if (total <= 0) return;
+
+        double contentWidth;
+        if (_userContentWidth is double user)
         {
-            // Réserve au moins 740px pour que 2 cartes (325px + marges et défilement) restent côte à côte
-            double maxConsole = available - 740;
-            OutputPanel.Width = Math.Clamp(maxConsole, 280, 360);
+            contentWidth = user;
         }
         else
         {
-            OutputPanel.Width = 280;
+            double forCards = total - SidebarExpanded - ConsoleMinWidth - PageChrome + 12; // la dernière marge de carte peut déborder
+            int columns = Math.Max(1, (int)Math.Floor(forCards / CardStep));
+            contentWidth = columns * CardStep + PageChrome;
         }
+
+        // Toujours laisser au moins la largeur minimale à la console, même barre dépliée
+        double maxContent = Math.Max(300, total - SidebarExpanded - ConsoleMinWidth);
+        contentWidth = Math.Clamp(contentWidth, 300, maxContent);
+
+        ContentColumn.Width   = new GridLength(contentWidth);
+        TerminalColumn.Width  = new GridLength(1, GridUnitType.Star);
+        OutputPanel.Width     = double.NaN;
+    }
+
+    private void ShowConsole()
+    {
+        _userContentWidth = null;
+        LayoutConsole();
+        OutputPanel.Visibility = Visibility.Visible;
+        JournalDot.Visibility = Visibility.Collapsed;
+        TxtJournalLabel.Text = "Masquer le journal";
+        // Afficher la fin du journal (les dernières lignes ajoutées pendant qu'il était fermé)
+        Dispatcher.InvokeAsync(() => OutputBox.ScrollToEnd(), DispatcherPriority.Background);
+    }
+
+    private void HideConsole()
+    {
+        TxtJournalLabel.Text = "Journal";
+        OutputPanel.Visibility = Visibility.Collapsed;
+        ContentColumn.Width    = new GridLength(1, GridUnitType.Star);
+        TerminalColumn.Width   = GridLength.Auto;
     }
 
     private void BtnCloseOutput_Click(object sender, RoutedEventArgs e)
     {
-        if (ScriptExecutionCoordinator.IsRunning)
-        {
-            AppendOutput("\n🛑 [INTERRUPTION] Console fermée : annulation du script...");
-            ScriptExecutionCoordinator.StopActiveExecution();
-        }
-        OutputPanel.Visibility = Visibility.Collapsed;
+        // Fermer le journal ne fait que le masquer : l'outil en cours continue (il s'arrête depuis sa propre fenêtre)
+        HideConsole();
     }
 
+
+    private void BtnJournal_Click(object sender, RoutedEventArgs e)
+    {
+        if (OutputPanel.Visibility == Visibility.Visible) HideConsole();
+        else ShowConsole();
+    }
 
     private void BtnClearOutput_Click(object sender, RoutedEventArgs e)
     {
@@ -186,18 +232,16 @@ public partial class MainWindow : Window
     {
         _isResizingTerminal = true;
         _resizeStartPoint   = e.GetPosition(this);
-        _startTerminalWidth = OutputPanel.ActualWidth;
+        _startTerminalWidth = ContentColumn.ActualWidth; // on redimensionne la zone des cartes, la console prend le reste
         TerminalResizeGrip.CaptureMouse();
     }
 
     private void TerminalResizeGrip_MouseMove(object sender, MouseEventArgs e)
     {
         if (!_isResizingTerminal) return;
-        var    currentPoint = e.GetPosition(this);
-        double deltaX       = _resizeStartPoint.X - currentPoint.X;
-        double newWidth     = _startTerminalWidth + deltaX;
-        double maxWidth     = Math.Max(400, ActualWidth * 0.75);
-        OutputPanel.Width   = Math.Clamp(newWidth, 260, maxWidth);
+        double deltaX     = e.GetPosition(this).X - _resizeStartPoint.X;
+        _userContentWidth = _startTerminalWidth + deltaX;
+        LayoutConsole();
     }
 
     private void TerminalResizeGrip_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -318,34 +362,19 @@ public partial class MainWindow : Window
         if (_isSidebarCollapsed == isCollapsed) return;
         _isSidebarCollapsed = isCollapsed;
 
-        // 1. En-tête / Logo
-        HeaderExpanded.Visibility   = isCollapsed ? Visibility.Collapsed : Visibility.Visible;
-        HeaderCollapsed.Visibility  = isCollapsed ? Visibility.Visible : Visibility.Collapsed;
-        SidebarHeaderBorder.Padding = isCollapsed ? new Thickness(0, 18, 0, 14) : new Thickness(16, 18, 16, 14);
+        // Les icônes (logo, recherche, navigation) gardent la même position horizontale dans les
+        // deux états, centrées dans la barre repliée : seuls les libellés sont masqués / affichés.
+        // Hidden (et non Collapsed) : l'élément garde sa place, donc rien ne bouge verticalement.
+        var labelVisibility = isCollapsed ? Visibility.Hidden : Visibility.Visible;
 
-        // 2. Recherche
-        if (isCollapsed)
-        {
-            SearchExpandedGrid.Visibility       = Visibility.Collapsed;
-            SearchIconCollapsed.Visibility      = Visibility.Visible;
-            SidebarSearchBorder.Padding         = new Thickness(8, 0, 8, 10);
-            SearchBoxBorder.Width               = 48;
-            SearchBoxBorder.Height              = 34;
-            SearchBoxBorder.HorizontalAlignment = HorizontalAlignment.Center;
-        }
-        else
-        {
-            SearchExpandedGrid.Visibility       = Visibility.Visible;
-            SearchIconCollapsed.Visibility      = Visibility.Collapsed;
-            SidebarSearchBorder.Padding         = new Thickness(12, 0, 12, 10);
-            SearchBoxBorder.Width               = double.NaN;
-            SearchBoxBorder.Height              = 34;
-            SearchBoxBorder.HorizontalAlignment = HorizontalAlignment.Stretch;
-        }
+        // 1. En-tête : titre
+        HeaderTitle.Visibility = labelVisibility;
+
+        // 2. Recherche : champ de saisie (l'icône loupe reste en place)
+        SearchInputGrid.Visibility = labelVisibility;
 
         // 3. Séparateur et titre "CATÉGORIES"
-        CategoriesHeader.Visibility = isCollapsed ? Visibility.Collapsed : Visibility.Visible;
-        CategoriesSeparator.Margin  = isCollapsed ? new Thickness(4, 4, 4, 4) : new Thickness(4, 8, 4, 4);
+        CategoriesHeader.Visibility = labelVisibility;
 
         // 4. Boutons de navigation (Favoris, Paramètres, et 13 catégories)
         UpdateButtonCollapsedState(NavFavoris, isCollapsed);
@@ -380,32 +409,16 @@ public partial class MainWindow : Window
 
     private void UpdateButtonCollapsedState(Button btn, bool isCollapsed)
     {
-        btn.Padding = isCollapsed ? new Thickness(0, 7, 0, 7) : new Thickness(10, 7, 10, 7);
+        // Marge et alignement inchangés (style SidebarItem) : l'icône ne bouge pas.
+        if (btn.Content is not DockPanel dock) return;
+        var visibility = isCollapsed ? Visibility.Collapsed : Visibility.Visible;
 
-        if (btn.Content is DockPanel dock)
+        foreach (UIElement child in dock.Children)
         {
-            foreach (UIElement child in dock.Children)
-            {
-                if (child is Border badgeBorder)
-                {
-                    badgeBorder.Visibility = isCollapsed ? Visibility.Collapsed : Visibility.Visible;
-                }
-                else if (child is StackPanel sp)
-                {
-                    sp.HorizontalAlignment = isCollapsed ? HorizontalAlignment.Center : HorizontalAlignment.Left;
-                    if (sp.Children.Count >= 2)
-                    {
-                        if (sp.Children[0] is TextBlock iconTb)
-                        {
-                            iconTb.Margin = isCollapsed ? new Thickness(0) : new Thickness(0, 0, 12, 0);
-                        }
-                        if (sp.Children[1] is TextBlock labelTb)
-                        {
-                            labelTb.Visibility = isCollapsed ? Visibility.Collapsed : Visibility.Visible;
-                        }
-                    }
-                }
-            }
+            if (child is Border badgeBorder)
+                badgeBorder.Visibility = visibility;
+            else if (child is StackPanel sp && sp.Children.Count >= 2 && sp.Children[1] is TextBlock labelTb)
+                labelTb.Visibility = isCollapsed ? Visibility.Hidden : Visibility.Visible;
         }
     }
 
@@ -623,10 +636,13 @@ public partial class MainWindow : Window
 
         if (_pendingOutput.IsEmpty) return;
 
+        // Mode journal : la console reste fermée, un point signale du nouveau contenu ;
+        // elle ne s'ouvre d'elle-même que si une erreur est signalée.
         if (OutputPanel.Visibility != Visibility.Visible)
         {
-            AdjustConsoleWidth();
-            OutputPanel.Visibility = Visibility.Visible;
+            bool hasError = _pendingOutput.Any(l => l.Contains("[ERREUR]", StringComparison.Ordinal) || l.Contains("❌", StringComparison.Ordinal));
+            if (hasError) ShowConsole();
+            else JournalDot.Visibility = Visibility.Visible;
         }
 
         var blocks = OutputBox.Document.Blocks;

@@ -84,7 +84,7 @@ public partial class BootRecoveryDialog : Window
         bool reboot = ChkRebootSafeMode.IsChecked == true;
         if (reboot)
         {
-            var res = MessageBox.Show(
+            var res = AppMessageBox.Show(
                 "Le mode sans échec Minimal va être configuré et l'ordinateur va redémarrer dans 5 secondes.\n\nAssurez-vous d'avoir sauvegardé tous vos documents ouverts.\nVoulez-vous continuer ?",
                 "Confirmation du redémarrage",
                 MessageBoxButton.YesNo,
@@ -107,7 +107,7 @@ public partial class BootRecoveryDialog : Window
         bool reboot = ChkRebootSafeMode.IsChecked == true;
         if (reboot)
         {
-            var res = MessageBox.Show(
+            var res = AppMessageBox.Show(
                 "Le mode sans échec Réseau (avec pilotes Internet) va être configuré et l'ordinateur va redémarrer dans 5 secondes.\n\nAssurez-vous d'avoir sauvegardé tous vos documents ouverts.\nVoulez-vous continuer ?",
                 "Confirmation du redémarrage",
                 MessageBoxButton.YesNo,
@@ -138,7 +138,7 @@ public partial class BootRecoveryDialog : Window
     {
         if (_isBusy) return;
 
-        var res = MessageBox.Show(
+        var res = AppMessageBox.Show(
             "Votre ordinateur va redémarrer immédiatement pour accéder aux options avancées de récupération (WinRE).\n\nAssurez-vous d'avoir sauvegardé tous vos travaux en cours.\nConfirmez-vous le redémarrage vers WinRE ?",
             "Accès WinRE — Confirmation",
             MessageBoxButton.YesNo,
@@ -158,7 +158,7 @@ public partial class BootRecoveryDialog : Window
 
         if (!BootService.IsUefiSystem())
         {
-            var warnRes = MessageBox.Show(
+            var warnRes = AppMessageBox.Show(
                 "Votre ordinateur semble être configuré en BIOS Hérité (Legacy) et non en UEFI.\nLe redémarrage direct vers le firmware risque d'échouer ou de redémarrer normalement.\n\nVoulez-vous quand même tenter l'opération ?",
                 "Avertissement Micrologiciel",
                 MessageBoxButton.YesNo,
@@ -168,7 +168,7 @@ public partial class BootRecoveryDialog : Window
         }
         else
         {
-            var res = MessageBox.Show(
+            var res = AppMessageBox.Show(
                 "Votre ordinateur va redémarrer directement dans les réglages du BIOS / UEFI.\n\nAssurez-vous d'avoir fermé vos applications et sauvegardé vos fichiers.\nConfirmez-vous le redémarrage vers le BIOS / UEFI ?",
                 "Accès BIOS / UEFI — Confirmation",
                 MessageBoxButton.YesNo,
@@ -187,7 +187,7 @@ public partial class BootRecoveryDialog : Window
     {
         if (_isBusy) return;
 
-        var res = MessageBox.Show(
+        var res = AppMessageBox.Show(
             "Cette opération va reconstruire les fichiers de démarrage Windows (BCDBoot) et supprimer les éventuelles boucles de démarrage sans échec.\n\nVoulez-vous lancer la réparation du magasin BCD ?",
             "Réparation BCD — Confirmation",
             MessageBoxButton.YesNo,

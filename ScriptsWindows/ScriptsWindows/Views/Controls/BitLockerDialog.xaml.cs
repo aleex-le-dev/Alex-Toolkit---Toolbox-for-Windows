@@ -193,7 +193,7 @@ if ($v) {{
     {
         if (CmbDrives.SelectedItem is not DriveBitLockerItem item) return;
 
-        var confirm = MessageBox.Show(
+        var confirm = AppMessageBox.Show(
             $"Êtes-vous sûr de vouloir DÉSACTIVER BitLocker et déchiffrer le lecteur {item.Letter}: ?\n\n" +
             "Le déchiffrement va s'exécuter en arrière-plan sans bloquer votre système.",
             $"Désactiver BitLocker sur {item.Letter}:",

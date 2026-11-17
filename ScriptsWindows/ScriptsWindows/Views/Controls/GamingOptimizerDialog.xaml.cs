@@ -198,7 +198,7 @@ public partial class GamingOptimizerDialog : Window
 
     private async void BtnRestoreDefaults_Click(object sender, RoutedEventArgs e)
     {
-        var result = MessageBox.Show(this,
+        var result = AppMessageBox.Show(this,
             "Souhaitez-vous restaurer les paramètres standards de Windows pour la pile réseau et le planificateur multimédia ?",
             "Revenir en arrière", MessageBoxButton.YesNo, MessageBoxImage.Question);
 

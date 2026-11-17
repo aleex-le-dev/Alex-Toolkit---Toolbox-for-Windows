@@ -239,7 +239,8 @@ public static class SectionViewBuilder
         container.Children.Clear();
         var controller = new SectionController();
 
-        var wrapPanel = new WrapPanel
+        // Grille à colonnes égales qui remplit toute la largeur
+        var grid = new CardGridPanel
         {
             Margin = new Thickness(0, 4, 0, 0)
         };
@@ -248,10 +249,10 @@ public static class SectionViewBuilder
         {
             var card = new ToolCard();
             card.BindTool(tool);
-            wrapPanel.Children.Add(card);
+            grid.Children.Add(card);
         }
 
-        container.Children.Add(wrapPanel);
+        container.Children.Add(grid);
         return controller;
     }
 
@@ -305,15 +306,16 @@ public static class SectionViewBuilder
             container.Children.Add(topBar);
         }
 
+        // Les sous-catégories se rangent côte à côte sur une grille commune (plus de vide à droite)
+        var flow = new SectionFlowPanel();
+        container.Children.Add(flow);
+
         for (int groupIndex = 0; groupIndex < groups.Count; groupIndex++)
         {
             var group = groups[groupIndex];
             int currentIndex = groupIndex;
 
-            var sectionBox = new StackPanel
-            {
-                Margin = new Thickness(0, 0, 0, 10)
-            };
+            var sectionBox = new StackPanel();
 
             // En-tête de sous-catégorie (carte interactive)
             var headerBorder = new Border
@@ -382,7 +384,9 @@ public static class SectionViewBuilder
                 Text = group.SubHeading,
                 FontSize = 13.5,
                 FontWeight = FontWeights.SemiBold,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                ToolTip = group.SubHeading
             };
             titleBlock.SetResourceReference(TextBlock.ForegroundProperty, "TextPrimary");
 
@@ -395,9 +399,9 @@ public static class SectionViewBuilder
             headerBorder.SetResourceReference(Border.BorderBrushProperty, "AccentDim");
 
             // Grille des cartes (dépliée par défaut pour ne masquer aucun script)
-            var wrapPanel = new WrapPanel
+            var wrapPanel = new CardGridPanel
             {
-                Margin = new Thickness(6, 10, 0, 6),
+                Margin = new Thickness(0, 8, 0, 0),
                 Visibility = Visibility.Visible
             };
 
@@ -448,7 +452,9 @@ public static class SectionViewBuilder
             sectionBox.Children.Add(headerBorder);
             sectionBox.Children.Add(wrapPanel);
 
-            container.Children.Add(sectionBox);
+            SectionFlowPanel.SetCardCount(sectionBox, group.Tools.Count);
+            SectionFlowPanel.SetCardGrid(sectionBox, wrapPanel);
+            flow.Children.Add(sectionBox);
         }
 
         return controller;
@@ -615,16 +621,15 @@ public static class SectionViewBuilder
             // Panneau déroulant : sous-catégories et outils de la catégorie (déplié par défaut)
             var contentPanel = new StackPanel
             {
-                Margin = new Thickness(8, 12, 0, 8),
+                Margin = new Thickness(0, 12, 0, 8),
                 Visibility = Visibility.Visible
             };
+            var subFlow = new SectionFlowPanel();
+            contentPanel.Children.Add(subFlow);
 
             foreach (var subCat in catGroup.SubCategories)
             {
-                var subBox = new StackPanel
-                {
-                    Margin = new Thickness(0, 4, 0, 14)
-                };
+                var subBox = new StackPanel();
 
                 // En-tête élégant de la sous-catégorie
                 var subHeader = new StackPanel
@@ -649,7 +654,9 @@ public static class SectionViewBuilder
                     Text = subCat.SubHeading,
                     FontSize = 13,
                     FontWeight = FontWeights.SemiBold,
-                    VerticalAlignment = VerticalAlignment.Center
+                    VerticalAlignment = VerticalAlignment.Center,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    ToolTip = subCat.SubHeading
                 };
                 subTitle.SetResourceReference(TextBlock.ForegroundProperty, "TextSecondary");
 
@@ -679,7 +686,7 @@ public static class SectionViewBuilder
                 subBox.Children.Add(subHeader);
 
                 // Cartes d'outils
-                var wrapPanel = new WrapPanel
+                var wrapPanel = new CardGridPanel
                 {
                     Margin = new Thickness(0, 2, 0, 0)
                 };
@@ -692,7 +699,9 @@ public static class SectionViewBuilder
                 }
 
                 subBox.Children.Add(wrapPanel);
-                contentPanel.Children.Add(subBox);
+                SectionFlowPanel.SetCardCount(subBox, subCat.Tools.Count);
+                SectionFlowPanel.SetCardGrid(subBox, wrapPanel);
+                subFlow.Children.Add(subBox);
             }
 
             // Action d'affichage de cette catégorie

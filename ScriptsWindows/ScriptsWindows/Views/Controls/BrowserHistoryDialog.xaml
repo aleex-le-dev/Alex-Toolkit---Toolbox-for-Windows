@@ -1,0 +1,200 @@
+<Window xmlns:ui="http://schemas.modernwpf.com/2019" ui:WindowHelper.UseModernWindowStyle="True"
+        x:Class="ScriptsWindows.Views.Controls.BrowserHistoryDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Historique de navigation"
+        Width="1080" Height="740"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize" MinWidth="860" MinHeight="560"
+        Background="{DynamicResource BgDeep}"
+        Foreground="{DynamicResource TextPrimary}"
+        FontFamily="{StaticResource FontMain}">
+
+    <Window.Resources>
+        <Style x:Key="Row" TargetType="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" BorderBrush="{DynamicResource Border}" BorderThickness="0,0,0,1" Padding="14,8">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgCardHover}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="Kpi" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource BgCard}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="14,10"/>
+        </Style>
+        <Style x:Key="SiteChip" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="0,0,6,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="12" Padding="10,3">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- En-tête -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,16">
+            <Button DockPanel.Dock="Right" x:Name="BtnRefresh" Style="{StaticResource ActionButton}" VerticalAlignment="Center" Click="BtnRefresh_Click">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE72C;" FontFamily="{StaticResource FontIcon}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Actualiser" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Border Width="40" Height="40" CornerRadius="8" Background="{DynamicResource AccentDim}" Margin="0,0,14,0">
+                <TextBlock Text="&#xE774;" FontFamily="{StaticResource FontIcon}" FontSize="18" Foreground="{DynamicResource AccentText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Historique de navigation" FontFamily="{StaticResource FontDisplay}" FontSize="19" FontWeight="SemiBold"/>
+                <TextBlock Text="Chrome, Edge, Brave, Vivaldi, Opera et Firefox, tous profils confondus. Lecture seule : l'historique n'est jamais modifié."
+                           Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Indicateurs -->
+        <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,12">
+            <Border Style="{StaticResource Kpi}" Margin="0,0,6,0">
+                <StackPanel>
+                    <TextBlock Text="PAGES" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}"/>
+                    <TextBlock x:Name="TxtPages" Text="…" FontSize="22" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Kpi}" Margin="3,0,3,0">
+                <StackPanel>
+                    <TextBlock Text="SITES DIFFÉRENTS" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}"/>
+                    <TextBlock x:Name="TxtSites" Text="…" FontSize="22" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Kpi}" Margin="3,0,3,0">
+                <StackPanel>
+                    <TextBlock Text="NAVIGATEURS / PROFILS" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}"/>
+                    <TextBlock x:Name="TxtBrowsers" Text="…" FontSize="22" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Kpi}" Margin="6,0,0,0">
+                <StackPanel>
+                    <TextBlock Text="DERNIÈRE VISITE" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource TextMuted}"/>
+                    <TextBlock x:Name="TxtLast" Text="…" FontSize="15" FontWeight="SemiBold" Margin="0,6,0,0"/>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <!-- Filtres -->
+        <Grid Grid.Row="2" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Grid>
+                <TextBox x:Name="TxtSearch" Style="{StaticResource FieldTextBox}" VerticalContentAlignment="Center" Padding="30,0,8,0" TextChanged="Filter_Changed"/>
+                <TextBlock Text="&#xE721;" FontFamily="{StaticResource FontIcon}" FontSize="12" Foreground="{DynamicResource TextMuted}" Margin="10,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"/>
+            </Grid>
+            <ComboBox Grid.Column="1" x:Name="CmbBrowser" Style="{StaticResource FieldComboBox}" Width="250" Margin="8,0,0,0" SelectionChanged="Filter_Changed"/>
+            <ComboBox Grid.Column="2" x:Name="CmbPeriod" Style="{StaticResource FieldComboBox}" Width="190" Margin="8,0,0,0" SelectionChanged="Filter_Changed">
+                <ComboBoxItem Content="Toute la période" IsSelected="True"/>
+                <ComboBoxItem Content="Aujourd'hui"/>
+                <ComboBoxItem Content="7 derniers jours"/>
+                <ComboBoxItem Content="30 derniers jours"/>
+            </ComboBox>
+        </Grid>
+
+        <!-- Sites les plus visités -->
+        <DockPanel Grid.Row="3" Margin="0,0,0,6">
+            <TextBlock Text="Les plus visités :" FontSize="11.5" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Top" Margin="2,4,10,0"/>
+            <WrapPanel x:Name="PanelTopSites"/>
+        </DockPanel>
+
+        <!-- Liste -->
+        <Border Grid.Row="4" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8">
+            <Grid>
+                <ListBox x:Name="LstHistory" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource Row}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True"
+                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="112"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding DateText}" FontSize="12" Foreground="{DynamicResource TextSecondary}"/>
+                                    <TextBlock Text="{Binding TimeText}" FontSize="11" Foreground="{DynamicResource TextMuted}" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="0,0,12,0" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="12.5" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" ToolTip="{Binding Url}">
+                                        <Run Text="{Binding Domain, Mode=OneWay}" Foreground="{DynamicResource AccentText}"/>
+                                        <Run Text="{Binding PathText, Mode=OneWay}" Foreground="{DynamicResource TextMuted}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="150">
+                                    <TextBlock Text="{Binding Browser}" FontSize="11.5" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="{Binding VisitsText}" FontSize="11" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Right" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Content="&#xE8A7;" Style="{StaticResource IconButton}" ToolTip="Ouvrir la page" Tag="{Binding}" Click="BtnOpen_Click"/>
+                                    <Button Content="&#xE8C8;" Style="{StaticResource IconButton}" ToolTip="Copier l'adresse" Tag="{Binding}" Click="BtnCopy_Click" Margin="4,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <StackPanel x:Name="PanelEmpty" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <ProgressBar x:Name="ProgLoad" Width="220" Height="3" IsIndeterminate="True" Margin="0,0,0,12"/>
+                    <TextBlock x:Name="TxtEmpty" Text="Lecture de l'historique des navigateurs…" Foreground="{DynamicResource TextSecondary}" FontSize="12" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Pied -->
+        <DockPanel Grid.Row="5" Margin="0,14,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button x:Name="BtnExport" Style="{StaticResource ActionButton}" Margin="0,0,8,0" IsEnabled="False" Click="BtnExport_Click"
+                        ToolTip="Exporte la liste affichée au format CSV (s'ouvre dans Excel)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE74E;" FontFamily="{StaticResource FontIcon}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Exporter (Excel)" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Content="Fermer" Style="{StaticResource ActionButton}" Click="BtnClose_Click"/>
+            </StackPanel>
+            <TextBlock x:Name="TxtStatus" Foreground="{DynamicResource TextSecondary}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+        </DockPanel>
+    </Grid>
+</Window>

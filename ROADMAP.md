@@ -1,35 +1,38 @@
 # 🗺️ Roadmap — Alex Toolkit
 
-Voici la feuille de route des développements futurs d'**Alex Toolkit**. Les fonctionnalités sont priorisées en fonction des retours de la communauté et des besoins terrain.
+Feuille de route d'**Alex Toolkit**. Les fonctionnalités sont priorisées selon les retours et les besoins des techniciens de maintenance.
 
 ---
 
-## 🟢 Version Actuelle : v4.0 (Stable)
-- [x] Refonte intégrale en C# / WPF (.NET 8) avec compilation autonome en fichier unique (`AlexToolkit.exe`).
-- [x] 13 catégories complètes (Diagnostic, Réparation, Démarrage, Nettoyage, Matériel, Réseau, Sécurité, etc.).
-- [x] 5 thèmes visuels dynamiques (*Aero Glass*, *Cyberpunk Neon*, *Matrix Phosphor*, *Nordic Frost*, *Obsidian Luxury*).
-- [x] Console latérale intégrée (streaming PowerShell / CMD async en UTF-8).
-- [x] Recherche universelle instantanée et gestionnaire de favoris locaux.
-- [x] Audit complet d'éligibilité Windows 11 24H2 et NPU IA Copilot+.
-- [x] Bouclier de confidentialité et blocage réversible de la télémétrie.
-- [x] Optimiseur de latence Gaming et activation du profil d'alimentation Ultime.
+## 🟢 Version actuelle : v4.2.31
+- [x] Application C# / WPF (.NET 10 LTS) en **exécutable unique autonome** : runtime inclus, aucune installation ni téléchargement (fonctionne hors ligne, sur clé USB).
+- [x] **49 outils** répartis en 13 catégories, avec recherche instantanée, favoris et arborescence générée automatiquement.
+- [x] Interface professionnelle : thèmes **Sombre / Clair** mémorisés, icônes Windows (Segoe Fluent), boutons et couleurs unifiés.
+- [x] Console latérale intégrée (PowerShell / CMD en UTF-8, rendu par lots, barres de progression sur une ligne).
+- [x] Mise à jour intégrée via GitHub Releases avec vérification du fichier téléchargé.
+- [x] **Outils techniciens** : intervention + rapport client HTML, écrans bleus et périphériques en erreur, comptes utilisateurs, désinfection, sauvegarde / transfert de profil, suppression des applications préinstallées.
+- [x] **Dépannage des imprimantes** en interface graphique (+ script de déblocage sur le Bureau).
+- [x] **Test de puissance du PC** en graphique (jauge, comparatifs, historique).
+- [x] Inventaire des logiciels installés (export CSV / HTML) et recherche avancée de documents confidentiels (≈ 200 mots-clés, analyse du contenu).
+- [x] Audit Windows 11 24H2 / NPU, bouclier de confidentialité, optimiseur Gaming, benchmark DNS.
 
 ---
 
-## 🟡 Prochaine Version : v4.1 (En cours d'étude)
-- [ ] **Sauvegarde & Restauration des Profils** : export / import des favoris et réglages d'optimisation en fichier JSON chiffré.
-- [ ] **Détecteur de doublons et gros fichiers** : scanner rapide de volumes pour identifier les fichiers volumineux oubliés.
-- [ ] **Moniteur d'événements BSOD interactif** : analyse simplifiée des minidumps de plantages avec suggestions de correctifs.
-- [ ] **Raccourcis clavier universels** : raccourci configurable pour ouvrir l'application ou invoquer la console n'importe où.
+## 🟡 Prochaine version : v4.3 (en préparation)
+- [ ] **Validation terrain** : lancement de l'exe sur un PC vierge sans .NET ; tests réels des actions sensibles (réinstallation d'imprimante, comptes, debloat, restauration de profil).
+- [ ] **Détecteur de gros fichiers et doublons** : scan rapide des volumes pour retrouver les fichiers volumineux oubliés.
+- [ ] **Analyse des minidumps** : lecture du pilote fautif dans les fichiers `.dmp` (en complément des codes d'arrêt déjà traduits).
+- [ ] **Export / import des réglages de l'application** (favoris, thème, préférences de mise à jour).
 
 ---
 
-## 🔵 Idées à l'étude (v4.2+)
-- [ ] **Module de benchmarking synthétique** : comparaison avant/après optimisation des latences réseau et disque.
-- [ ] **Mode Portable Cloud-Free** : synchronisation locale sécurisée sur clé USB pour les techniciens itinérants.
-- [ ] **Support multilingue étendu** : ajout de l'anglais complet avec bascule automatique selon la langue du système.
+## 🔵 Idées à l'étude (v4.4+)
+- [ ] **Raccourci clavier global** pour ouvrir l'application ou la console.
+- [ ] **Mode portable** : données de l'application stockées à côté de l'exe (clé USB) au lieu de `%LocalAppData%`.
+- [ ] **Comparaison avant / après intervention** automatique (démarrage, disque, réseau) intégrée au rapport client.
+- [ ] **Version anglaise** avec bascule automatique selon la langue du système.
 
 ---
 
-💬 **Vous souhaitez suggérer une fonctionnalité ?**  
+💬 **Une idée de fonctionnalité ?**
 Participez aux discussions sur [GitHub Discussions → Ideas](https://github.com/aleex-le-dev/SCRIPT-WINDOWS-ALEEXLEDEV/discussions) !

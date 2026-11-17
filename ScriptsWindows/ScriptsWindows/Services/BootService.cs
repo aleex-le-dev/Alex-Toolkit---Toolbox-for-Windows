@@ -248,7 +248,7 @@ public static class BootService
         bool confirmed = false;
         await Application.Current.Dispatcher.InvokeAsync(() =>
         {
-            var res = MessageBox.Show(
+            var res = AppMessageBox.Show(
                 "Votre ordinateur va redémarrer immédiatement pour accéder aux options avancées de récupération (WinRE).\n\nAssurez-vous d'avoir sauvegardé tous vos travaux en cours.\nConfirmez-vous le redémarrage vers WinRE ?",
                 "Accès WinRE — Confirmation",
                 MessageBoxButton.YesNo,
@@ -276,7 +276,7 @@ public static class BootService
         {
             if (!IsUefiSystem())
             {
-                var warnRes = MessageBox.Show(
+                var warnRes = AppMessageBox.Show(
                     "Votre ordinateur semble être configuré en BIOS Hérité (Legacy) et non en UEFI.\nLe redémarrage direct vers le firmware risque d'échouer.\n\nVoulez-vous quand même tenter l'opération ?",
                     "Avertissement Micrologiciel",
                     MessageBoxButton.YesNo,
@@ -285,7 +285,7 @@ public static class BootService
             }
             else
             {
-                var res = MessageBox.Show(
+                var res = AppMessageBox.Show(
                     "Votre ordinateur va redémarrer directement dans les réglages du BIOS / UEFI.\n\nAssurez-vous d'avoir fermé vos applications et sauvegardé vos fichiers.\nConfirmez-vous le redémarrage vers le BIOS / UEFI ?",
                     "Accès BIOS / UEFI — Confirmation",
                     MessageBoxButton.YesNo,

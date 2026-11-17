@@ -84,7 +84,7 @@ Get-CimInstance Win32_StartupCommand -ErrorAction SilentlyContinue | Select-Obje
     {
         if (sender is not Button btn || btn.Tag is not StartupItemModel item) return;
 
-        var confirm = MessageBox.Show(
+        var confirm = AppMessageBox.Show(
             $"Désactiver '{item.Name}' du démarrage de Windows ?\n\nCommande : {item.Command}",
             "Désactiver du démarrage",
             MessageBoxButton.YesNo,

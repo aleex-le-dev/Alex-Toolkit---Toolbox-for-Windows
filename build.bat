@@ -8,9 +8,9 @@ echo ========================================================
 echo.
 
 set "CSPROJ=%~dp0ScriptsWindows\ScriptsWindows\ScriptsWindows.csproj"
-set "PUBLISH_EXE=%~dp0ScriptsWindows\ScriptsWindows\bin\Release\net8.0-windows\win-x64\publish\AlexToolkit.exe"
+set "PUBLISH_EXE=%~dp0ScriptsWindows\ScriptsWindows\bin\Release\net10.0-windows\win-x64\publish\AlexToolkit.exe"
 
-:: 1. Detection du SDK .NET 8
+:: 1. Detection du SDK .NET 10 ou plus recent
 if exist "%LOCALAPPDATA%\Microsoft\dotnet\dotnet.exe" (
     set "DOTNET_ROOT=%LOCALAPPDATA%\Microsoft\dotnet"
     set "DOTNET_MULTILEVEL_LOOKUP=0"
@@ -40,13 +40,14 @@ set "FINAL_EXE=%~dp0AlexToolkit_v%NEW_VER%.exe"
 
 :: 3. Compilation et publication en fichier unique autonome .exe
 echo [1/2] Compilation en cours...
-"%DOTNET_CMD%" publish "%CSPROJ%" -c Release -r win-x64 --no-self-contained -p:PublishSingleFile=true
+:: Autonome : le runtime .NET 10 Desktop est inclus dans l'exe (rien a installer sur le PC cible)
+"%DOTNET_CMD%" publish "%CSPROJ%" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
 
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo ========================================================
     echo   [ERREUR] Echec de la compilation.
-    echo   Verifiez que le SDK .NET 8.0 est bien present.
+    echo   Verifiez que le SDK .NET 10 ou plus recent est bien present.
     echo ========================================================
     pause
     exit /b %ERRORLEVEL%

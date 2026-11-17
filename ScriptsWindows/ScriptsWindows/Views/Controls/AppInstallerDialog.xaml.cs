@@ -99,7 +99,7 @@ public partial class AppInstallerDialog : Window
         var selected = Apps.Where(a => a.IsSelected).ToList();
         if (selected.Count == 0)
         {
-            MessageBox.Show("Veuillez cocher au moins une application.", "Aucune sélection", MessageBoxButton.OK, MessageBoxImage.Information);
+            AppMessageBox.Show("Veuillez cocher au moins une application.", "Aucune sélection", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 

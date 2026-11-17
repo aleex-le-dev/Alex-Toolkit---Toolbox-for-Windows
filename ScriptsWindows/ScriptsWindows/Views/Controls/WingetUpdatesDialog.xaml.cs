@@ -147,7 +147,7 @@ public partial class WingetUpdatesDialog : Window
         var selected = Updates.Where(u => u.IsSelected).ToList();
         if (selected.Count == 0)
         {
-            MessageBox.Show("Veuillez cocher au moins une application à mettre à jour.", "Aucune sélection", MessageBoxButton.OK, MessageBoxImage.Information);
+            AppMessageBox.Show("Veuillez cocher au moins une application à mettre à jour.", "Aucune sélection", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -239,7 +239,7 @@ public partial class WingetUpdatesDialog : Window
 
     private async void BtnUpdateAll_Click(object sender, RoutedEventArgs e)
     {
-        var confirm = MessageBox.Show(
+        var confirm = AppMessageBox.Show(
             "Voulez-vous lancer la mise à niveau automatique de toutes les applications disponibles ?\n\n(Commande : winget upgrade --all --include-unknown)",
             "Tout mettre à jour",
             MessageBoxButton.YesNo,
@@ -348,7 +348,7 @@ public partial class WingetUpdatesDialog : Window
     private async void BtnUninstallApp_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { Tag: ScriptsWindows.Services.InstalledApp app }) return;
-        if (MessageBox.Show(this, $"Désinstaller « {app.Name} » ?\n\n{app.Details}\n\nLe programme de désinstallation du logiciel va s'ouvrir.",
+        if (AppMessageBox.Show(this, $"Désinstaller « {app.Name} » ?\n\n{app.Details}\n\nLe programme de désinstallation du logiciel va s'ouvrir.",
                             "Désinstaller", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
 
         TxtFeedback.Text = $"Désinstallation de {app.Name}…";

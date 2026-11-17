@@ -24,7 +24,8 @@
     <Grid x:Name="MainRootGrid" Focusable="True" FocusVisualStyle="{x:Null}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition x:Name="SidebarColumn" Width="Auto" />
-            <ColumnDefinition Width="*" />
+            <!-- Console ouverte : largeur fixe = colonnes de cartes entières, la console prend le reste (voir LayoutConsole) -->
+            <ColumnDefinition x:Name="ContentColumn" Width="*" />
             <ColumnDefinition x:Name="TerminalColumn" Width="Auto" />
         </Grid.ColumnDefinitions>
 
@@ -45,30 +46,24 @@
                 <!-- Identité de l'application -->
                 <Border DockPanel.Dock="Top"
                         x:Name="SidebarHeaderBorder"
-                        Padding="16,18,16,14">
-                    <Grid>
-                        <StackPanel x:Name="HeaderExpanded" Orientation="Horizontal">
-                            <Border Width="30" Height="30" CornerRadius="7" Background="{DynamicResource Accent}" VerticalAlignment="Center">
-                                <TextBlock Text="A" FontFamily="{StaticResource FontDisplay}" FontSize="16" FontWeight="Bold"
-                                           Foreground="{DynamicResource OnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                            </Border>
-                            <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="Alex Toolkit" FontFamily="{StaticResource FontDisplay}" FontSize="14" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextPrimary}" />
-                                <TextBlock Text="Maintenance Windows" FontSize="11" Foreground="{DynamicResource TextMuted}" Margin="0,1,0,0" />
-                            </StackPanel>
-                        </StackPanel>
-                        <Border x:Name="HeaderCollapsed" Visibility="Collapsed"
-                                Width="30" Height="30" CornerRadius="7" Background="{DynamicResource Accent}"
-                                HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="Alex Toolkit">
+                        Padding="17,18,8,14">
+                    <!-- Logo à position fixe (centré dans la barre repliée) : seul le titre est masqué au repli -->
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="30" Height="30" CornerRadius="7" Background="{DynamicResource Accent}" VerticalAlignment="Center"
+                                ToolTip="Alex Toolkit">
                             <TextBlock Text="A" FontFamily="{StaticResource FontDisplay}" FontSize="16" FontWeight="Bold"
                                        Foreground="{DynamicResource OnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
-                    </Grid>
+                        <StackPanel x:Name="HeaderTitle" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="Alex Toolkit" FontFamily="{StaticResource FontDisplay}" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextPrimary}" />
+                            <TextBlock Text="Maintenance Windows" FontSize="11" Foreground="{DynamicResource TextMuted}" Margin="0,1,0,0" />
+                        </StackPanel>
+                    </StackPanel>
                 </Border>
 
                 <!-- Recherche -->
-                <Border DockPanel.Dock="Top" x:Name="SidebarSearchBorder" Padding="12,0,12,10">
+                <Border DockPanel.Dock="Top" x:Name="SidebarSearchBorder" Padding="8,0,8,10">
                     <Border x:Name="SearchBoxBorder"
                             Background="{DynamicResource BgInput}"
                             BorderBrush="{DynamicResource Border}"
@@ -79,26 +74,20 @@
                             ToolTip="Rechercher un outil (Échap pour effacer)"
                             MouseLeftButtonUp="SearchBorder_MouseLeftButtonUp">
                         <Grid>
-                            <TextBlock x:Name="SearchIconCollapsed"
-                                       Text="&#xE721;"
-                                       Visibility="Collapsed"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       FontFamily="{StaticResource FontIcon}"
-                                       Foreground="{DynamicResource TextSecondary}"
-                                       FontSize="13" />
-
                             <Grid x:Name="SearchExpandedGrid">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
+                                <!-- Même colonne que les icônes de navigation (8 + 1 + 14 = 23 px) -->
                                 <TextBlock Text="&#xE721;" Grid.Column="0"
-                                           Margin="10,0,6,0"
+                                           Width="18"
+                                           TextAlignment="Center"
+                                           Margin="14,0,6,0"
                                            VerticalAlignment="Center"
                                            FontFamily="{StaticResource FontIcon}"
                                            Foreground="{DynamicResource TextMuted}"
-                                           FontSize="12" />
+                                           FontSize="13" />
                                 <Grid x:Name="SearchInputGrid" Grid.Column="1">
                                     <TextBlock Text="Rechercher un outil"
                                                VerticalAlignment="Center"
@@ -188,7 +177,7 @@
                                    FontSize="10.5"
                                    FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextMuted}"
-                                   Margin="10,4,0,6" />
+                                   Margin="15,4,0,6" />
 
                         <Button Tag="APPLICATIONS" ToolTip="Applications" Style="{StaticResource SidebarItem}" Click="NavCategory_Click" MouseEnter="NavCategory_MouseEnter">
                             <DockPanel LastChildFill="True">
@@ -341,6 +330,23 @@
                     BorderThickness="0,0,0,1"
                     Padding="28,20,28,18">
                 <DockPanel LastChildFill="True">
+                    <!-- Journal d'exécution : la console ne s'ouvre plus d'elle-même (sauf en cas d'erreur) -->
+                    <Button x:Name="BtnJournal"
+                            DockPanel.Dock="Right"
+                            VerticalAlignment="Center"
+                            Margin="10,0,0,0"
+                            Style="{StaticResource ActionButton}"
+                            ToolTip="Afficher / masquer le journal d'exécution (ce qui a été lancé, résultats et erreurs)"
+                            Click="BtnJournal_Click">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE756;" FontFamily="{StaticResource FontIcon}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                <TextBlock x:Name="TxtJournalLabel" Text="Journal" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <Ellipse x:Name="JournalDot" Width="8" Height="8" Fill="{DynamicResource Accent}"
+                                     HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-12,0" Visibility="Collapsed" />
+                        </Grid>
+                    </Button>
                     <Button x:Name="BtnUpdateNotification"
                             DockPanel.Dock="Right"
                             Visibility="Collapsed"

@@ -397,7 +397,7 @@ $ip = (Get-NetIPAddress -InterfaceAlias $alias -AddressFamily IPv4 -ErrorAction 
 
     private async void BtnGrandReset_Click(object sender, RoutedEventArgs e)
     {
-        var res = MessageBox.Show(
+        var res = AppMessageBox.Show(
             "Cette opération va purger le cache DNS, vider la table ARP, réinitialiser Winsock, la pile TCP/IP et renouveler votre adresse IP.\n\nVoulez-vous continuer ?",
             "Confirmation Grand Reset Réseau",
             MessageBoxButton.YesNo,

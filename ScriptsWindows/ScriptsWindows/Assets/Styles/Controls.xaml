@@ -161,7 +161,11 @@
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="HorizontalAlignment"        Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-        <Setter Property="Padding"         Value="10,7,10,7" />
+        <!-- Marge gauche 15 px : l'icône (18 px) reste centrée dans la barre repliée (64 px)
+             et ne bouge pas lors du dépliage. -->
+        <Setter Property="Padding"         Value="15,0,10,0" />
+        <!-- Hauteur fixe : la ligne garde la même hauteur avec ou sans libellé (barre repliée / dépliée) -->
+        <Setter Property="Height"          Value="34" />
         <Setter Property="Margin"          Value="0,1,0,1" />
         <Setter Property="FontFamily"      Value="{StaticResource FontMain}" />
         <Setter Property="FontSize"        Value="{StaticResource FontSizeMD}" />
@@ -230,6 +234,57 @@
         <Setter Property="FontSize"   Value="11" />
         <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
     </Style>
+
+    <!-- Champs des fenêtres d'outils : case de sélection, recherche, liste déroulante (jetons du thème) -->
+    <!-- Case à cocher nette sur fond sombre comme clair (cochée / partielle / vide) -->
+    <Style x:Key="SelectCheckBox" TargetType="CheckBox">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+        <Setter.Value>
+            <ControlTemplate TargetType="CheckBox">
+                <Border x:Name="Box" Width="18" Height="18" CornerRadius="4" Background="{DynamicResource BgInput}"
+                            BorderBrush="{DynamicResource BorderStrong}" BorderThickness="1.5">
+                    <TextBlock x:Name="Mark" Text="" FontFamily="{StaticResource FontIcon}" FontSize="11" FontWeight="Bold"
+                                   Foreground="{DynamicResource OnAccent}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                    </Trigger>
+                    <Trigger Property="IsChecked" Value="True">
+                        <Setter TargetName="Box" Property="Background" Value="{DynamicResource Accent}"/>
+                        <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                        <Setter TargetName="Mark" Property="Text" Value="&#xE73E;"/>
+                    </Trigger>
+                    <Trigger Property="IsChecked" Value="{x:Null}">
+                        <Setter TargetName="Box" Property="Background" Value="{DynamicResource Accent}"/>
+                        <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                        <Setter TargetName="Mark" Property="Text" Value="&#xE738;"/>
+                    </Trigger>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter TargetName="Box" Property="Opacity" Value="0.4"/>
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="FieldTextBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+        <Setter Property="Background" Value="{DynamicResource BgInput}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+        <Setter Property="Height" Value="34"/>
+    </Style>
+    <Style x:Key="FieldComboBox" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+        <Setter Property="Background" Value="{DynamicResource BgInput}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Height" Value="34"/>
+    </Style>
+
 
     <!-- ═══════════════════════════════════════════════════════════════════
          DIVERS

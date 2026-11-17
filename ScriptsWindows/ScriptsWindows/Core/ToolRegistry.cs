@@ -55,7 +55,7 @@ public static class ToolRegistry
 
         // ─── Matériel (4) ───
         ["hw_winsat"] = "winsat.exe formal -restart clean + lecture du DataStore WinSAT (XML) → jauge, graphiques, comparatifs, historique",
-        ["hw_powercfg_energy"] = "powercfg.exe /energy /output energy-report.html",
+        ["hw_powercfg_energy"] = "AlexToolkit.exe (interface : BatteryDialog — powercfg /batteryreport /xml + /energy /xml)",
         ["hw_power_perf"] = "AlexToolkit.exe (Interface de gestion des modes d'alimentation : Normal, Performances élevées, Performances ultimes)",
         ["nov_gaming_optimizer"] = "AlexToolkit.exe (Optimisation de latence, HAGS et Game Mode)",
 
@@ -63,24 +63,24 @@ public static class ToolRegistry
         ["repair_system_integrity"] = "AlexToolkit.exe (Centre d'intégrité Windows : DISM Scan/Restore et SFC)",
         ["repair_chkdsk"] = "chkdsk.exe (Interface interactive de réparation de disque NTFS)",
         ["repair_services_manager"] = "AlexToolkit.exe (Gestionnaire des services Windows : Spouleur, Windows Update...)",
-        ["repair_spooler"] = "AlexToolkit.exe (Déblocage et purge des travaux d'impression)",
+        ["repair_spooler"] = "AlexToolkit.exe (Centre de dépannage des imprimantes : Get-Printer, Get-PrintJob, Get-PrinterDriver, Win32_Printer, spouleur) + Debloquer_Impression.bat",
         ["repair_apps_shell"] = "AlexToolkit.exe (Réparation Store UWP, wsreset et cache d'icônes Explorer)",
         ["repair_restore_point"] = "AlexToolkit.exe (Points de restauration système Windows)",
-        ["repair_export_drivers"] = "dism.exe /Online /Export-Driver /Destination:C:\\DriversBackup",
+        ["repair_export_drivers"] = "AlexToolkit.exe (interface : DriverBackupDialog — pnputil /export-driver, /add-driver)",
 
         // ─── Nettoyage (1) ───
         ["clean_system_unified"] = "AlexToolkit.exe (Interface interactive : Cleanmgr, temporaires, corbeille, caches et WinSxS)",
 
         // ─── Secrets et Clés (4) ───
-        ["sec_wifi_show"] = "netsh.exe wlan show profiles key=clear",
-        ["sec_audit_sensitive"] = "AlexToolkit.exe (Audit C# approfondi .ssh, .aws, .env, documents secrets)",
-        ["sec_win_key"] = "wmic.exe path softwarelicensingservice get OA3xOriginalProductKey",
-        ["sec_browser_profiles"] = "AlexToolkit.exe (Lecteur SQLite natif Chrome, Edge, Brave, Firefox)",
+        ["sec_wifi_show"] = "AlexToolkit.exe (interface : WifiPasswordsDialog — netsh wlan show profile key=clear)",
+        ["sec_audit_sensitive"] = "AlexToolkit.exe (interface : SensitiveDocsDialog — noms, scans, contenu des fichiers, .ssh, .aws, .env)",
+        ["sec_win_key"] = "AlexToolkit.exe (interface : WindowsKeyDialog — SoftwareLicensingService + DigitalProductId)",
+        ["sec_browser_profiles"] = "AlexToolkit.exe (interface : BrowserHistoryDialog — SQLite Chrome, Edge, Brave, Vivaldi, Opera, Firefox)",
 
         // ─── Réseau (7) ───
         ["net_center"] = "AlexToolkit.exe (Centre de contrôle réseau : diagnostic, DNS, scan et triage)",
         ["nov_dns_speed_test"] = "AlexToolkit.exe (Benchmark de latence et vitesse des serveurs DNS)",
-        ["net_reset_all"] = "AlexToolkit.exe (Protocole de réinitialisation réseau en 7 étapes)",
+        ["net_reset_all"] = "AlexToolkit.exe (interface : NetworkResetDialog — 7 étapes + test de connexion)",
         ["net_wifi_scan"] = "netsh.exe wlan show networks mode=bssid (Scanner visuel)",
         ["net_wifi_report"] = "netsh.exe wlan show wlanreport (Rapport graphique)",
         ["net_lan_scan"] = "AlexToolkit.exe (Scanner LAN des périphériques et machines locales)",
@@ -96,7 +96,6 @@ public static class ToolRegistry
         // ─── Applications (2) ───
         ["app_installer_center"] = "AlexToolkit.exe (Installation d'applications unifiée : Chrome, VLC, 7-Zip, Sumatra PDF, PowerShell 7, Office, ArtCraft)",
         ["app_debloat"] = "Get-AppxPackage + Remove-AppxPackage [-AllUsers] + Remove-AppxProvisionedPackage -Online",
-        ["app_install_artcraft"] = "AlexToolkit.exe (Téléchargement direct Google Drive avec secours MSI GitHub)",
 
         // ─── Mises à jour (1) ───
         ["upd_winget_manager"] = "winget.exe upgrade (Gestionnaire de paquets interactif Winget)",
@@ -104,7 +103,7 @@ public static class ToolRegistry
         // ─── Sécurité (4) ───
         ["sec_center"] = "AlexToolkit.exe (Centre de surveillance et sécurité unifié Defender, BSOD et RAM)",
         ["nov_privacy_shield"] = "AlexToolkit.exe (Bouclier de confidentialité et blocage télémétrie Windows)",
-        ["sec_defender_quickscan"] = "powershell Start-MpScan -ScanType QuickScan",
+        ["sec_defender_quickscan"] = "AlexToolkit.exe (interface : DefenderScanDialog — Get-MpComputerStatus, Start-MpScan, Get-MpThreat)",
         ["sec_perfmon_rel"] = "perfmon.exe /rel",
         ["sec_malware_cleanup"] = "AlexToolkit.exe (hosts, proxy, Get-ScheduledTask, clés Run + Start-MpScan / Start-MpWDOScan, winget AdwCleaner / Malwarebytes)",
         ["sec_user_accounts"] = "AlexToolkit.exe (Comptes locaux : Get/New/Set/Remove-LocalUser, groupes par SID)",
@@ -325,17 +324,17 @@ public static class ToolRegistry
         {
             Id = "hw_powercfg_energy",
             Name = "Détecter ce qui vide la batterie",
-            Description = "Analyse pendant 1 minute comment votre ordinateur utilise l'énergie et liste les réglages ou applications qui consomment trop.",
+            Description = "Mesure l'usure de la batterie (capacité, cycles, autonomie) et liste en clair ce qui consomme de l'énergie : pilotes, programmes, réglages.",
             Features = new[]
             {
-                "Audit d'efficacité énergétique pendant 60 secondes",
-                "Identification des applications énergivores en veille",
-                "Génération d'un rapport d'autonomie HTML complet"
+                "Santé de la batterie en % et évolution de sa capacité",
+                "Diagnostic Windows de 60 s lu et trié par gravité",
+                "Fonctionne aussi sur PC fixe (consommation)"
             },
             Category = "MATERIEL",
             SubHeading = "Banc d'essai et performances",
             Icon = "🔋",
-            Action = (log, ct) => HardwareService.RunPowercfgEnergy(log, ct),
+            Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.BatteryDialog(log, ct)),
             Tags = new[] { "batterie", "autonomie", "énergie", "consommation", "économiser", "rapport", "portable" }
         });
     }
@@ -381,22 +380,27 @@ public static class ToolRegistry
             Tags = new[] { "disque", "réparer", "chkdsk", "erreurs", "secteurs", "bloqué", "ntfs", "dossiers", "intégrité" }
         });
 
+        // Imprimantes : une seule carte (le Centre contient le déblocage en 1 clic).
+        // Id historique « repair_spooler » conservé : les favoris existants continuent de fonctionner.
         _allTools.Add(new ScriptTool
         {
             Id = "repair_spooler",
-            Name = "Débloquer l'imprimante et relancer les impressions",
-            Description = "Votre impression est coincée ? Cette action vide la file d'attente bloquée, redémarre le service d'impression et débloque votre imprimante en 1 clic.",
+            Name = "Dépannage des imprimantes",
+            Description = "Impression bloquée, imprimante hors ligne ou en erreur ? État réel de chaque imprimante avec le conseil adapté, déblocage en 1 clic, pilotes et réinstallation.",
             Features = new[]
             {
-                "Purge immédiate des documents bloqués dans la file",
-                "Arrêt, nettoyage du cache et relance du spouleur",
-                "Résout les imprimantes bloquées en état 'Erreur'"
+                "Déblocage de l'impression en 1 clic",
+                "État réel : hors ligne, bourrage, erreur…",
+                "Pilotes, réinstallation, page de test"
             },
             Category = "REPARATION",
             SubHeading = "Dépannage de l'imprimante et des services",
             Icon = "🖨️",
-            Action = (log, ct) => RepairService.FixPrintSpooler(log, ct),
-            Tags = new[] { "imprimante", "impression", "bloquée", "coincée", "file", "spooler", "spouleur", "vider", "nettoyer", "relancer" }
+            Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.PrinterCenterDialog(log, ct)),
+            DesktopAction = log => PrinterCenterService.CreateDesktopUnblockScript(log),
+            DesktopHint = "Le fichier « Debloquer_Impression.bat » débloque l'impression en un double-clic (il demande les droits administrateur, vide la file et relance le service). Fichier autonome : copiez-le sur une clé USB pour dépanner n'importe quel PC.",
+            Tags = new[] { "imprimante", "impression", "bloquée", "coincée", "file", "spooler", "spouleur", "vider", "relancer", "hors ligne", "pilote", "driver",
+                           "page de test", "file d'attente", "réinstaller", "par défaut", "scanner", "supprimer", "pnp" }
         });
 
         _allTools.Add(new ScriptTool
@@ -460,14 +464,14 @@ public static class ToolRegistry
             Description = "Copie tous les pilotes de vos composants (carte graphique, Wi-Fi, son) dans un dossier pour pouvoir les réinstaller facilement.",
             Features = new[]
             {
-                "Exportation des pilotes tiers vers C:\\DriversBackup",
-                "Sauvegarde Carte graphique, Wi-Fi, Audio, Chipset",
-                "Réinstallation express sans connexion Internet"
+                "Liste des pilotes des fabricants, sauvegarde au choix",
+                "Un dossier par pilote, copiable sur clé USB",
+                "Réinstallation en un clic après un formatage"
             },
             Category = "REPARATION",
             SubHeading = "Sauvegardes et points de retour",
             Icon = "💾",
-            Action = (log, ct) => ExportService.ExportDrivers(log, ct),
+            Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.DriverBackupDialog(log, ct)),
             Tags = new[] { "pilotes", "drivers", "sauvegarder", "dossier", "export", "backup", "carte graphique", "wifi" }
         });
     }
@@ -493,6 +497,7 @@ public static class ToolRegistry
             Icon = "🧹",
             Action = (log, ct) => CleaningService.OpenSystemCleanupDialog(log, ct),
             DesktopAction = log => CleaningService.CreateDesktopCleanupScript(log),
+            DesktopHint = "Double-cliquez dessus à tout moment pour lancer le nettoyage complet avec le détail de l'espace libéré.",
             Tags = new[] { "nettoyer", "libérer", "espace", "disque", "temporaires", "corbeille", "cache", "navigateurs", "cleanmgr", "accélérer" }
         });
     }
@@ -506,17 +511,17 @@ public static class ToolRegistry
         {
             Id = "sec_wifi_show",
             Name = "Retrouver mes mots de passe Wi-Fi enregistrés",
-            Description = "Affiche immédiatement en clair le mot de passe de votre box Wi-Fi ainsi que tous les réseaux auxquels votre PC s'est déjà connecté.",
+            Description = "Retrouve le mot de passe de votre box Wi-Fi et de tous les réseaux auxquels le PC s'est déjà connecté.",
             Features = new[]
             {
-                "Scan de tous les profils Wi-Fi mémorisés sur le PC",
-                "Affichage instantané des clés de sécurité en clair",
-                "Copie en 1 clic du mot de passe dans le presse-papiers"
+                "Tous les réseaux mémorisés, réseau actuel en tête",
+                "Mots de passe masqués, affichables un par un",
+                "Copie en 1 clic et export dans un fichier texte"
             },
             Category = "SECRETS",
             SubHeading = "Mots de passe et Wi-Fi",
             Icon = "📶",
-            Action = (log, ct) => SecurityService.DumpWifiPasswords(log, ct),
+            Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.WifiPasswordsDialog(log, ct)),
             Tags = new[] { "wifi", "mot de passe", "box", "clé", "clair", "retrouver", "code", "sans fil" }
         });
 
@@ -524,17 +529,17 @@ public static class ToolRegistry
         {
             Id = "sec_browser_profiles",
             Name = "Consulter l'historique de mes navigateurs web",
-            Description = "Affiche les 35 dernières pages visitées sur vos navigateurs (Google Chrome, Edge, Firefox, Brave) sans même avoir besoin de les ouvrir.",
+            Description = "Affiche les pages visitées sur Chrome, Edge, Brave, Vivaldi, Opera et Firefox (tous profils), sans ouvrir les navigateurs.",
             Features = new[]
             {
-                "Support de Chrome, Edge, Brave et Firefox",
-                "Lecture directe des bases SQLite sans ouvrir les applis",
-                "Affichage des 35 dernières pages et horodatages"
+                "Recherche, filtres par navigateur et par période",
+                "Sites les plus visités en un coup d'œil",
+                "Export Excel (CSV) de l'historique affiché"
             },
             Category = "SECRETS",
             SubHeading = "Mots de passe et Wi-Fi",
             Icon = "🌐",
-            Action = (log, ct) => ExportService.AnalyzeBrowserHistory(log, ct),
+            Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.BrowserHistoryDialog(log, ct)),
             Tags = new[] { "historique", "sites", "web", "pages", "chrome", "edge", "firefox", "brave", "navigation" }
         });
 
@@ -545,14 +550,14 @@ public static class ToolRegistry
             Description = "Lit la clé de licence officielle gravée dans la carte mère de votre PC, indispensable en cas de réinstallation complète de Windows.",
             Features = new[]
             {
-                "Lecture de la clé OEM gravée dans le BIOS / UEFI",
-                "Indispensable pour réactiver lors d'une réinstallation",
-                "Copie immédiate de la licence officielle en 25 caractères"
+                "Clé gravée dans le BIOS / UEFI et clé installée",
+                "État d'activation, édition et type de licence",
+                "Copie en 1 clic et export dans un fichier texte"
             },
             Category = "SECRETS",
             SubHeading = "Licences et documents confidentiels",
             Icon = "🔑",
-            Action = (log, ct) => ExportService.GetWindowsKey(log, ct),
+            Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.WindowsKeyDialog(log, ct)),
             Tags = new[] { "clé", "licence", "windows", "activation", "produit", "carte mère", "oem", "bios", "uefi" }
         });
 
@@ -560,17 +565,17 @@ public static class ToolRegistry
         {
             Id = "sec_audit_sensitive",
             Name = "Rechercher mes documents et codes confidentiels",
-            Description = "Recherche dans vos dossiers personnels les fichiers contenant des mots de passe oubliés, des identifiants cloud ou des clés de sécurité.",
+            Description = "Repère dans vos dossiers les mots de passe en clair, IBAN, cartes bancaires, pièces d'identité, clés privées et jetons d'API, classés par gravité.",
             Features = new[]
             {
-                "Recherche de clés SSH, tokens AWS, fichiers .env",
-                "Scan ciblé des dossiers personnels et profils",
-                "Rapport préventif pour protéger vos données sensibles"
+                "Analyse des noms, des scans et du contenu des fichiers",
+                "Classement : secrets en clair, documents, accès techniques",
+                "Copie vers une clé USB, rapport HTML ou mise à la corbeille"
             },
             Category = "SECRETS",
             SubHeading = "Licences et documents confidentiels",
             Icon = "🔍",
-            Action = (log, ct) => ExportService.ScanSensitiveDocs(log, ct),
+            Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.SensitiveDocsDialog(log, ct)),
             Tags = new[] { "recherche", "documents", "secrets", "confidentiels", "mots de passe", "ssh", "tokens", "sécurité" }
         });
     }
@@ -620,17 +625,17 @@ public static class ToolRegistry
         {
             Id = "net_reset_all",
             Name = "Réparer la connexion Internet (Grand Reset)",
-            Description = "Plus d'Internet ou connexion bloquée ? Remet à neuf l'ensemble des réglages réseau de Windows en 7 étapes automatiques.",
+            Description = "Plus d'Internet ou connexion bloquée ? Remet à neuf les réglages réseau de Windows en 7 étapes suivies une à une, puis teste la connexion.",
             Features = new[]
             {
-                "Purge du cache DNS et vidage de la table ARP",
-                "Réinitialisation complète pile TCP/IP et Winsock",
-                "Libération et renouvellement immédiat de l'adresse IP"
+                "Cache DNS, ARP, Winsock, TCP/IP et adresse IP",
+                "Résultat de chaque étape et test de connexion final",
+                "Redémarrage proposé à la fin"
             },
             Category = "RESEAU",
             SubHeading = "Dépannage et amélioration de la connexion",
             Icon = "⚡",
-            Action = (log, ct) => NetworkService.ResetAll(log, ct),
+            Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.NetworkResetDialog(log, ct)),
             Tags = new[] { "panne", "internet", "réparer", "coupure", "reset", "réinitialiser", "bloqué", "dhcp", "wifi", "ethernet" }
         });
 
@@ -828,23 +833,6 @@ public static class ToolRegistry
             Tags = new[] { "installer", "applications", "logiciels", "programmes", "chrome", "vlc", "7zip", "office", "sumatra", "artcraft", "craft", "facile", "1-clic" }
         });
 
-        _allTools.Add(new ScriptTool
-        {
-            Id = "app_install_artcraft",
-            Name = "Installer ArtCraft Launcher — Suite Créative",
-            Description = "Télécharge et déploie ArtCraft Launcher via le lien direct Google Drive (avec secours automatique sur le package MSI GitHub) pour accéder à toute la suite créative open-source (PhotoCraft, VectorCraft, FilmCraft, CAD...).",
-            Features = new[]
-            {
-                "Source principale : Téléchargement direct Google Drive (v0.5.1)",
-                "Secours automatique : Package officiel .msi GitHub Releases (v0.3.2)",
-                "13 applications créatives libres & gratuites (https://getartcraft.com/apps)"
-            },
-            Category = "APPLICATIONS",
-            SubHeading = "Suite créative & multimédia",
-            Icon = "🎨",
-            Action = async (log, ct) => await AppService.InstallArtCraft(log, null, ct),
-            Tags = new[] { "artcraft", "craft", "launcher", "drive", "msi", "photocraft", "vectorcraft", "filmcraft", "cadcraft", "créatif", "graphisme", "dessin", "vidéo", "open-source", "suite" }
-        });
 
         _allTools.Add(new ScriptTool
         {
@@ -934,17 +922,17 @@ public static class ToolRegistry
         {
             Id = "sec_defender_quickscan",
             Name = "Analyse antivirus rapide en 1 clic",
-            Description = "Lance une vérification immédiate des fichiers sensibles et de la mémoire par Microsoft Defender pour s'assurer qu'aucun virus n'est actif.",
+            Description = "État de Microsoft Defender, mise à jour des signatures, analyse rapide ou complète et liste des menaces détectées.",
             Features = new[]
             {
-                "Scan express des fichiers système et de la RAM",
-                "Détection des malwares actifs en tâche de fond",
-                "Exécution non-bloquante avec rapport immédiat"
+                "Protection, signatures et dernière analyse en un coup d'œil",
+                "Analyse rapide ou complète avec chronomètre",
+                "Menaces détectées et neutralisation en 1 clic"
             },
             Category = "SECURITE",
             SubHeading = "Vérifications express",
             Icon = "⚡",
-            Action = (log, ct) => SecurityService.DefenderQuickScan(log, ct),
+            Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.DefenderScanDialog(log, ct)),
             Tags = new[] { "antivirus", "scan", "rapide", "analyse", "virus", "menaces", "defender", "sécurité" }
         });
 

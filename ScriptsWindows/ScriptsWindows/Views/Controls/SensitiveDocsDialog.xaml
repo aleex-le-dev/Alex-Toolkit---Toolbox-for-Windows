@@ -1,0 +1,239 @@
+<Window xmlns:ui="http://schemas.modernwpf.com/2019" ui:WindowHelper.UseModernWindowStyle="True"
+        x:Class="ScriptsWindows.Views.Controls.SensitiveDocsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Documents et codes confidentiels"
+        Width="1080" Height="740"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize" MinWidth="860" MinHeight="580"
+        Background="{DynamicResource BgDeep}"
+        Foreground="{DynamicResource TextPrimary}"
+        FontFamily="{StaticResource FontMain}">
+
+    <Window.Resources>
+        <!-- Ligne de résultat sans surlignage de sélection (la sélection se fait par case à cocher) -->
+        <Style x:Key="ResultItem" TargetType="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" BorderBrush="{DynamicResource Border}" BorderThickness="0,0,0,1" Padding="12,9">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgCardHover}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="KpiLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextMuted}"/>
+        </Style>
+        <Style x:Key="KpiValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,2,0,0"/>
+            <Setter Property="Text" Value="–"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- En-tête -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,16">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="BtnCancel" Content="Arrêter" Style="{StaticResource ActionButton}" Margin="0,0,8,0" Visibility="Collapsed" Click="BtnCancel_Click"/>
+                <Button x:Name="BtnScan" Style="{StaticResource PrimaryActionButton}" Click="BtnScan_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE721;" FontFamily="{StaticResource FontIcon}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtScanLabel" Text="Lancer l'analyse" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+            <Border Width="40" Height="40" CornerRadius="8" Background="{DynamicResource DangerBg}" Margin="0,0,14,0">
+                <TextBlock Text="&#xE72E;" FontFamily="{StaticResource FontIcon}" FontSize="18" Foreground="{DynamicResource DangerText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Documents et codes confidentiels" FontFamily="{StaticResource FontDisplay}" FontSize="19" FontWeight="SemiBold"/>
+                <TextBlock Text="Mots de passe en clair, IBAN, cartes bancaires, pièces d'identité, clés privées et jetons d'API laissés dans le profil. Les valeurs trouvées sont toujours masquées."
+                           Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Indicateurs -->
+        <UniformGrid Grid.Row="1" Columns="4" Margin="0,0,0,14">
+            <Border Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,6,0">
+                <StackPanel>
+                    <TextBlock Text="ÉLÉMENTS TROUVÉS" Style="{StaticResource KpiLabel}"/>
+                    <TextBlock x:Name="TxtTotal" Style="{StaticResource KpiValue}"/>
+                </StackPanel>
+            </Border>
+            <Border Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="3,0,3,0"
+                    ToolTip="Mots de passe, IBAN, cartes, n° de sécurité sociale, clés privées et jetons lisibles en clair : à protéger en priorité.">
+                <StackPanel>
+                    <TextBlock Text="SECRETS EN CLAIR" Style="{StaticResource KpiLabel}"/>
+                    <TextBlock x:Name="TxtCritical" Style="{StaticResource KpiValue}" Foreground="{DynamicResource DangerText}"/>
+                </StackPanel>
+            </Border>
+            <Border Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="3,0,3,0"
+                    ToolTip="Pièces d'identité, documents bancaires, santé, contrats… repérés par leur nom (scans compris).">
+                <StackPanel>
+                    <TextBlock Text="DOCUMENTS PERSONNELS" Style="{StaticResource KpiLabel}"/>
+                    <TextBlock x:Name="TxtPersonal" Style="{StaticResource KpiValue}" Foreground="{DynamicResource WarningText}"/>
+                </StackPanel>
+            </Border>
+            <Border Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="6,0,0,0"
+                    ToolTip="Clés SSH, certificats, coffres-forts de mots de passe, connexions VPN / bureau à distance.">
+                <StackPanel>
+                    <TextBlock Text="ACCÈS TECHNIQUES" Style="{StaticResource KpiLabel}"/>
+                    <TextBlock x:Name="TxtTechnical" Style="{StaticResource KpiValue}" Foreground="{DynamicResource AccentText}"/>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
+
+        <!-- Filtres -->
+        <Grid Grid.Row="2" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <CheckBox x:Name="ChkAll" Style="{StaticResource SelectCheckBox}" VerticalAlignment="Center" Margin="13,0,12,0" ToolTip="Cocher / décocher les éléments affichés"
+                      Click="ChkAll_Click"/>
+            <Grid Grid.Column="1">
+                <TextBox x:Name="TxtSearch" Style="{StaticResource FieldTextBox}" VerticalContentAlignment="Center" Padding="30,0,8,0" TextChanged="Filter_Changed"
+                         ToolTip="Filtrer par nom, dossier ou détail"/>
+                <TextBlock Text="&#xE721;" FontFamily="{StaticResource FontIcon}" FontSize="12" Foreground="{DynamicResource TextMuted}" Margin="10,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                <TextBlock Text="Rechercher un fichier, un dossier, un type…" FontSize="12.5" Foreground="{DynamicResource TextMuted}" Margin="31,0,0,0"
+                           VerticalAlignment="Center" IsHitTestVisible="False">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Text, ElementName=TxtSearch}" Value="">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+            <ComboBox Grid.Column="2" x:Name="CmbLevel" Style="{StaticResource FieldComboBox}" Width="200" Margin="8,0,0,0" SelectionChanged="Filter_Changed">
+                <ComboBoxItem Content="Tous les niveaux" IsSelected="True"/>
+                <ComboBoxItem Content="Secrets en clair"/>
+                <ComboBoxItem Content="Documents personnels"/>
+                <ComboBoxItem Content="Accès techniques"/>
+            </ComboBox>
+            <ComboBox Grid.Column="3" x:Name="CmbCategory" Style="{StaticResource FieldComboBox}" Width="260" Margin="8,0,0,0" SelectionChanged="Filter_Changed"/>
+        </Grid>
+
+        <!-- Résultats -->
+        <Border Grid.Row="3" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8">
+            <Grid>
+                <ListBox x:Name="LstResults" Background="Transparent" BorderThickness="0" Padding="0"
+                         ItemContainerStyle="{StaticResource ResultItem}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ScrollViewer.CanContentScroll="True"
+                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                         VirtualizingPanel.ScrollUnit="Pixel">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" Style="{StaticResource SelectCheckBox}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                <Border Grid.Column="1" Width="32" Height="32" CornerRadius="16" Background="{Binding LevelBg}" VerticalAlignment="Top" Margin="0,1,12,0">
+                                    <TextBlock Text="{Binding Glyph}" FontFamily="{StaticResource FontIcon}" FontSize="14" Foreground="{Binding LevelFg}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Grid.Column="2" Margin="0,0,12,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis" MaxWidth="420"/>
+                                        <Border Background="{Binding LevelBg}" CornerRadius="4" Padding="7,1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding CategoryLabel}" FontSize="10.5" FontWeight="SemiBold" Foreground="{Binding LevelFg}"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding Details}" FontSize="12" Foreground="{DynamicResource TextSecondary}" TextTrimming="CharacterEllipsis" Margin="0,3,0,0"/>
+                                    <TextBlock Text="{Binding Folder}" FontSize="11" Foreground="{DynamicResource TextMuted}" FontFamily="{StaticResource FontMono}"
+                                               TextTrimming="CharacterEllipsis" Margin="0,2,0,0" ToolTip="{Binding Path}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="3" VerticalAlignment="Center" Margin="0,0,12,0" MinWidth="110">
+                                    <TextBlock Text="{Binding DateText}" FontSize="11.5" Foreground="{DynamicResource TextSecondary}" HorizontalAlignment="Right"/>
+                                    <TextBlock Text="{Binding SizeText}" FontSize="11" Foreground="{DynamicResource TextMuted}" HorizontalAlignment="Right" Margin="0,2,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Content="&#xE838;" Style="{StaticResource IconButton}" ToolTip="Afficher dans l'Explorateur" Tag="{Binding}" Click="BtnReveal_Click"/>
+                                    <Button Content="&#xE8E5;" Style="{StaticResource IconButton}" ToolTip="Ouvrir le fichier (les scripts s'ouvrent dans le Bloc-notes, sans être exécutés)" Tag="{Binding}" Click="BtnOpenFile_Click" Margin="4,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- État vide / analyse en cours -->
+                <StackPanel x:Name="PanelEmpty" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="560">
+                    <Border x:Name="EmptyBadge" Width="56" Height="56" CornerRadius="28" Background="{DynamicResource AccentDim}" HorizontalAlignment="Center">
+                        <TextBlock x:Name="EmptyGlyph" Text="&#xE721;" FontFamily="{StaticResource FontIcon}" FontSize="24" Foreground="{DynamicResource AccentText}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock x:Name="EmptyTitle" Text="Prêt à analyser" FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,14,0,6"/>
+                    <TextBlock x:Name="EmptyText" TextWrapping="Wrap" TextAlignment="Center" FontSize="12" Foreground="{DynamicResource TextSecondary}"
+                               Text="Bureau, Documents, Images, Téléchargements, OneDrive et racine du profil : noms de fichiers (≈ 200 mots-clés), scans de documents, contenu des fichiers texte, clés SSH et configurations d'outils."/>
+                    <ProgressBar x:Name="ProgScan" Height="3" Width="320" IsIndeterminate="True" Margin="0,16,0,0" Visibility="Collapsed"/>
+                    <TextBlock x:Name="TxtCurrentDir" FontSize="11" Foreground="{DynamicResource TextMuted}" FontFamily="{StaticResource FontMono}"
+                               TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" Margin="0,8,0,0" MaxWidth="540"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Pied : état + actions sur la sélection -->
+        <DockPanel Grid.Row="4" Margin="0,14,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button x:Name="BtnReport" Style="{StaticResource ActionButton}" Margin="0,0,8,0" IsEnabled="False" Click="BtnReport_Click"
+                        ToolTip="Rapport HTML imprimable des éléments affichés (valeurs masquées)">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE9F9;" FontFamily="{StaticResource FontIcon}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Rapport" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnCopy" Style="{StaticResource ActionButton}" Margin="0,0,8,0" IsEnabled="False" Click="BtnCopy_Click"
+                        ToolTip="Copie les fichiers cochés dans un dossier (clé USB, disque externe), rangés par catégorie">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8C8;" FontFamily="{StaticResource FontIcon}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtCopyLabel" Text="Copier dans un dossier" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnRecycle" Style="{StaticResource DangerActionButton}" Margin="0,0,8,0" IsEnabled="False" Click="BtnRecycle_Click"
+                        ToolTip="Envoie les fichiers cochés dans la Corbeille (récupérables), par exemple avant de céder le PC">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE74D;" FontFamily="{StaticResource FontIcon}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Corbeille" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Content="Fermer" Style="{StaticResource ActionButton}" Click="BtnClose_Click"/>
+            </StackPanel>
+            <TextBlock x:Name="TxtStatus" Text="" Foreground="{DynamicResource TextSecondary}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+        </DockPanel>
+    </Grid>
+</Window>
