@@ -33,7 +33,7 @@
     <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
 
     <!-- ── Métadonnées & Icône ─────────────────────────────────────── -->
-    <Version>4.2.45</Version>
+    <Version>4.2.48</Version>
     <Company>AleexLeDev</Company>
     <Product>Alex Toolkit</Product>
     <Copyright>© 2026 AleexLeDev</Copyright>
@@ -44,6 +44,12 @@
   <ItemGroup>
     <!-- AppMessageBox (boîte de message au thème de l'application) accessible partout -->
     <Using Include="ScriptsWindows.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Scripts du menu contextuel installés dans C:\ProgramData\AlexToolkit (PersonalizationService) -->
+    <EmbeddedResource Include="Assets\Scripts\ForceDelete.ps1" LogicalName="ForceDelete.ps1" />
+    <EmbeddedResource Include="Assets\Scripts\OpenAdminTerminal.ps1" LogicalName="OpenAdminTerminal.ps1" />
   </ItemGroup>
 
   <ItemGroup>

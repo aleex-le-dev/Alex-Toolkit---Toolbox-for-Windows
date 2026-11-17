@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Windows;
 using System.Windows.Media;
@@ -19,7 +19,13 @@ public partial class ContextMenuItemsDialog : Window
         _onOutput = onOutput ?? (_ => { });
         _ct = ct;
 
-        Loaded += (s, e) => RefreshStatus();
+        Loaded += (s, e) =>
+        {
+            // Une nouvelle version de l'application met à jour les entrées et scripts déjà installés.
+            PersonalizationService.RefreshForceDeleteScriptIfInstalled();
+            PersonalizationService.RefreshAdminTerminalEntriesIfInstalled();
+            RefreshStatus();
+        };
     }
 
     private void RefreshStatus()
@@ -50,30 +56,59 @@ public partial class ContextMenuItemsDialog : Window
             BtnToggleClassicMenu.Style = (Style)FindResource("IndigoActionButton");
         }
 
-        // 2. Statut CMD Admin
-        UpdateBadge(BadgeCmdAdminStatus, TxtCmdAdminStatus, isCmdAdminActive);
-        if (isCmdAdminActive)
-        {
-            BtnToggleCmdAdmin.Content = "🗑️ Retirer du menu contextuel";
-            BtnToggleCmdAdmin.Style = (Style)FindResource("DangerActionButton");
-        }
-        else
-        {
-            BtnToggleCmdAdmin.Content = "✓ Activer au clic droit (via .reg)";
-            BtnToggleCmdAdmin.Style = (Style)FindResource("SuccessActionButton");
-        }
+        // 2 et 3. Statut CMD Admin et PowerShell Admin
+        UpdateToggle(BadgeCmdAdminStatus, TxtCmdAdminStatus, BtnToggleCmdAdmin, isCmdAdminActive);
+        UpdateToggle(BadgePowerShellAdminStatus, TxtPowerShellAdminStatus, BtnTogglePowerShellAdmin, isPsAdminActive);
 
-        // 3. Statut PowerShell Admin
-        UpdateBadge(BadgePowerShellAdminStatus, TxtPowerShellAdminStatus, isPsAdminActive);
-        if (isPsAdminActive)
+        // 4. Statut Forcer la suppression
+        bool isForceDeleteActive = PersonalizationService.IsForceDeleteContextMenuEnabled();
+        UpdateToggle(BadgeForceDeleteStatus, TxtForceDeleteStatus, BtnToggleForceDelete, isForceDeleteActive);
+    }
+
+    /// <summary>Badge « Actif / Non actif » et bouton Activer / Retirer d'une entrée du clic droit.</summary>
+    private void UpdateToggle(System.Windows.Controls.Border badge, System.Windows.Controls.TextBlock text, System.Windows.Controls.Button button, bool active)
+    {
+        UpdateBadge(badge, text, active);
+        button.Content = active ? "Retirer du menu contextuel" : "Activer au clic droit";
+        button.Style = (Style)FindResource(active ? "DangerActionButton" : "SuccessActionButton");
+    }
+
+    private void BtnToggleForceDelete_Click(object sender, RoutedEventArgs e)
+    {
+        try
         {
-            BtnTogglePowerShellAdmin.Content = "🗑️ Retirer du menu contextuel";
-            BtnTogglePowerShellAdmin.Style = (Style)FindResource("DangerActionButton");
+            if (PersonalizationService.IsForceDeleteContextMenuEnabled())
+            {
+                bool removed = PersonalizationService.RemoveForceDeleteContextMenu();
+                TxtStatus.Text = removed
+                    ? "« Forcer la suppression » a été retiré du menu contextuel."
+                    : "Retrait incomplet : relancez l'outil en administrateur.";
+                TxtStatus.Foreground = ThemeManager.GetBrush(removed ? "TextSecondary" : "DangerText");
+                _onOutput(removed ? "[INFO] « Forcer la suppression » retiré du menu contextuel." : "[WARN] Retrait incomplet de « Forcer la suppression ».");
+            }
+            else
+            {
+                var answer = AppMessageBox.Show(this,
+                    "Ajouter « Forcer la suppression » au clic droit des fichiers et dossiers ?\n\n" +
+                    "Cette commande supprime DÉFINITIVEMENT (sans Corbeille) en passant outre les autorisations : " +
+                    "elle ferme les programmes et services qui bloquent et prend le contrôle des fichiers. " +
+                    "Une confirmation est demandée à chaque utilisation, et les dossiers de Windows et des profils sont protégés.\n\n" +
+                    "Sous Windows 11, elle apparaît dans « Afficher d'autres options » (ou directement avec le menu classique).",
+                    "Forcer la suppression", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                if (answer != MessageBoxResult.Yes) return;
+
+                PersonalizationService.InstallForceDeleteContextMenu();
+                TxtStatus.Text = "✓ « Forcer la suppression » est disponible au clic droit des fichiers et dossiers.";
+                TxtStatus.Foreground = ThemeManager.GetBrush("SuccessText");
+                _onOutput($"[SUCCÈS] « Forcer la suppression » ajouté au clic droit (script : {PersonalizationService.ForceDeleteScriptPath}).");
+            }
+            RefreshStatus();
         }
-        else
+        catch (Exception ex)
         {
-            BtnTogglePowerShellAdmin.Content = "✓ Activer au clic droit (via .reg)";
-            BtnTogglePowerShellAdmin.Style = (Style)FindResource("SuccessActionButton");
+            TxtStatus.Text = $"Erreur : {ex.Message}";
+            TxtStatus.Foreground = ThemeManager.GetBrush("DangerText");
+            _onOutput($"[ERR] Forcer la suppression : {ex.Message}");
         }
     }
 
@@ -163,109 +198,40 @@ public partial class ContextMenuItemsDialog : Window
         }
     }
 
-    private void BtnToggleCmdAdmin_Click(object sender, RoutedEventArgs e)
+    private void BtnToggleCmdAdmin_Click(object sender, RoutedEventArgs e) =>
+        ToggleAdminEntry("Ouvrir CMD (Admin)", PersonalizationService.IsCmdAdminContextMenuEnabled,
+            PersonalizationService.InstallCmdAdminContextMenu, PersonalizationService.RemoveCmdAdminContextMenu);
+
+    private void BtnTogglePowerShellAdmin_Click(object sender, RoutedEventArgs e) =>
+        ToggleAdminEntry("Ouvrir PowerShell (Admin)", PersonalizationService.IsPowerShellAdminContextMenuEnabled,
+            PersonalizationService.InstallPowerShellAdminContextMenu, PersonalizationService.RemovePowerShellAdminContextMenu);
+
+    /// <summary>Ajoute ou retire une entrée « Ouvrir … (Admin) » : écriture directe dans le registre, sans fichier .reg.</summary>
+    private void ToggleAdminEntry(string label, Func<bool> isEnabled, Func<bool> install, Func<bool> remove)
     {
         try
         {
-            bool isAlreadyActive = PersonalizationService.IsCmdAdminContextMenuEnabled();
-
-            if (isAlreadyActive)
+            bool wasActive = isEnabled();
+            bool ok = wasActive ? remove() : install();
+            if (wasActive)
             {
-                // Suppression directe via l'interface
-                bool removed = PersonalizationService.RemoveCmdAdminContextMenu();
-                if (removed)
-                {
-                    TxtStatus.Text = "« Ouvrir CMD (Admin) » a été retiré de votre menu contextuel avec succès.";
-                    TxtStatus.Foreground = (SolidColorBrush)ThemeManager.GetBrush("TextSecondary");
-                    _onOutput("[INFO] « Ouvrir CMD (Admin) » retiré du menu contextuel (Bureau, dossiers, disques et bibliothèques).");
-                }
-                else
-                {
-                    TxtStatus.Text = "Opération incomplète : certaines clés nécessitent les droits administrateur.";
-                    TxtStatus.Foreground = (SolidColorBrush)ThemeManager.GetBrush("DangerText");
-                    _onOutput("[WARN] Échec du retrait de certaines clés du menu contextuel.");
-                }
+                TxtStatus.Text = ok ? $"« {label} » a été retiré du menu contextuel." : $"Retrait incomplet de « {label} » : relancez l'outil en administrateur.";
+                _onOutput(ok ? $"[INFO] « {label} » retiré du menu contextuel." : $"[WARN] Retrait incomplet de « {label} ».");
             }
             else
             {
-                // Création du fichier .reg, ouverture via regedit pour confirmation, puis suppression automatique
-                TxtStatus.Text = "Ouverture du fichier .reg dans l'Éditeur du Registre... Veuillez valider la fusion.";
-                TxtStatus.Foreground = (SolidColorBrush)ThemeManager.GetBrush("AccentText");
-
-                bool success = PersonalizationService.InstallCmdAdminViaRegFile();
-
-                if (success)
-                {
-                    TxtStatus.Text = "✓ Fichier .reg validé et supprimé ! « Ouvrir CMD (Admin) » est actif au clic droit.";
-                    TxtStatus.Foreground = (SolidColorBrush)ThemeManager.GetBrush("SuccessText");
-                    _onOutput("[SUCCÈS] Fichier .reg importé et supprimé. « Ouvrir CMD (Admin) » configuré sur le Bureau et tous les dossiers.");
-                }
-                else
-                {
-                    TxtStatus.Text = "Opération annulée ou non validée dans l'Éditeur du Registre.";
-                    TxtStatus.Foreground = (SolidColorBrush)ThemeManager.GetBrush("DangerText");
-                }
+                TxtStatus.Text = ok ? $"✓ « {label} » est disponible au clic droit (Bureau, dossiers, lecteurs, fichiers)."
+                                    : $"Impossible d'ajouter « {label} » : relancez l'outil en administrateur.";
+                _onOutput(ok ? $"[SUCCÈS] « {label} » ajouté au clic droit (Bureau, dossiers, lecteurs, fichiers)." : $"[WARN] Échec de l'ajout de « {label} ».");
             }
-
+            TxtStatus.Foreground = ThemeManager.GetBrush(!ok ? "DangerText" : wasActive ? "TextSecondary" : "SuccessText");
             RefreshStatus();
         }
         catch (Exception ex)
         {
             TxtStatus.Text = $"Erreur : {ex.Message}";
-            _onOutput($"[ERR] {ex.Message}");
-        }
-    }
-
-    private void BtnTogglePowerShellAdmin_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            bool isAlreadyActive = PersonalizationService.IsPowerShellAdminContextMenuEnabled();
-
-            if (isAlreadyActive)
-            {
-                // Suppression directe via l'interface
-                bool removed = PersonalizationService.RemovePowerShellAdminContextMenu();
-                if (removed)
-                {
-                    TxtStatus.Text = "« Ouvrir PowerShell (Admin) » a été retiré de votre menu contextuel avec succès.";
-                    TxtStatus.Foreground = (SolidColorBrush)ThemeManager.GetBrush("TextSecondary");
-                    _onOutput("[INFO] « Ouvrir PowerShell (Admin) » retiré du menu contextuel (Bureau, dossiers, disques et bibliothèques).");
-                }
-                else
-                {
-                    TxtStatus.Text = "Opération incomplète : certaines clés nécessitent les droits administrateur.";
-                    TxtStatus.Foreground = (SolidColorBrush)ThemeManager.GetBrush("DangerText");
-                    _onOutput("[WARN] Échec du retrait de certaines clés du menu contextuel.");
-                }
-            }
-            else
-            {
-                // Création du fichier .reg, ouverture via regedit pour confirmation, puis suppression automatique
-                TxtStatus.Text = "Ouverture du fichier .reg dans l'Éditeur du Registre... Veuillez valider la fusion.";
-                TxtStatus.Foreground = (SolidColorBrush)ThemeManager.GetBrush("AccentText");
-
-                bool success = PersonalizationService.InstallPowerShellAdminViaRegFile();
-
-                if (success)
-                {
-                    TxtStatus.Text = "✓ Fichier .reg validé et supprimé ! « Ouvrir PowerShell (Admin) » est actif au clic droit.";
-                    TxtStatus.Foreground = (SolidColorBrush)ThemeManager.GetBrush("SuccessText");
-                    _onOutput("[SUCCÈS] Fichier .reg importé et supprimé. « Ouvrir PowerShell (Admin) » configuré sur le Bureau et tous les dossiers.");
-                }
-                else
-                {
-                    TxtStatus.Text = "Opération annulée ou non validée dans l'Éditeur du Registre.";
-                    TxtStatus.Foreground = (SolidColorBrush)ThemeManager.GetBrush("DangerText");
-                }
-            }
-
-            RefreshStatus();
-        }
-        catch (Exception ex)
-        {
-            TxtStatus.Text = $"Erreur : {ex.Message}";
-            _onOutput($"[ERR] {ex.Message}");
+            TxtStatus.Foreground = ThemeManager.GetBrush("DangerText");
+            _onOutput($"[ERR] {label} : {ex.Message}");
         }
     }
 

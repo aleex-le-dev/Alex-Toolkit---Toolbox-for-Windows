@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using Microsoft.Win32;
 using ScriptsWindows.Core;
@@ -8,18 +8,24 @@ namespace ScriptsWindows.Services;
 /// <summary>Service personnalisation — context_menu, god_mode, gaming_mode, photo_viewer.</summary>
 public class PersonalizationService
 {
+    // Menu classique Windows 10 : réglage propre à chaque compte (HKCU), écrit directement dans le registre.
+    private const string ClassicMenuClsidKey = @"Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}";
+
     // Menu contextuel classique  (activate_classic)
-    public static async Task SetClassicMenu(Action<string> onOutput, CancellationToken ct = default)
+    public static Task SetClassicMenu(Action<string> onOutput, CancellationToken ct = default)
     {
-        await CommandRunner.RunAsync("reg add \"HKCU\\Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\\InprocServer32\" /f /ve", onOutput, ct);
+        using (var key = Registry.CurrentUser.CreateSubKey(ClassicMenuClsidKey + @"\InprocServer32", writable: true))
+            key.SetValue("", "");   // valeur par défaut vide : désactive le menu moderne de Windows 11
         onOutput("[OK] Menu contextuel classique activé");
+        return Task.CompletedTask;
     }
 
     // Menu contextuel moderne  (restore_modern)
-    public static async Task SetModernMenu(Action<string> onOutput, CancellationToken ct = default)
+    public static Task SetModernMenu(Action<string> onOutput, CancellationToken ct = default)
     {
-        await CommandRunner.RunAsync("reg delete \"HKCU\\Software\\Classes\\CLSID\\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\" /f", onOutput, ct);
+        Registry.CurrentUser.DeleteSubKeyTree(ClassicMenuClsidKey, throwOnMissingSubKey: false);
         onOutput("[OK] Menu contextuel moderne restauré");
+        return Task.CompletedTask;
     }
 
     // Redémarrage de l'Explorateur Windows
@@ -227,62 +233,75 @@ Write-Output '[OK] Visionneuse de photos Windows activée'
     }
 
     // ─── Personnalisation des éléments du Menu Contextuel (Clic Droit) ───
-    private static readonly string[] ContextMenuCmdAdminPaths = new[]
+    // ─── Écriture directe des entrées « Ouvrir … (Admin) » (plus de fichier .reg ni de confirmation de l'Éditeur du Registre) ───
+    // HKLM : l'entrée apparaît pour tous les comptes du PC, y compris quand l'application a été élevée avec un autre compte administrateur.
+    // Le registre lance OpenAdminTerminal.ps1 (dossier protégé) en lui passant le chemin comme simple argument :
+    // les noms avec apostrophe (« Projets d'été ») fonctionnent, et un clic droit sur un fichier ouvre son dossier.
+    private const string CmdAdminVerb = "OpenCmdAdmin";
+    private const string PowerShellAdminVerb = "OpenPowerShellAdmin";
+
+    /// <summary>Commande du registre. « %V » suivi d'une espace : « C:\ » ne doit pas finir par \" (guillemet échappé).</summary>
+    private static string AdminTerminalCommand(string shell) =>
+        $"\"{WindowsPowerShellExe}\" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{AdminTerminalScriptPath}\" -Shell {shell} -Path \"%V \"";
+
+    /// <summary>Crée l'entrée de clic droit dans chaque emplacement (Bureau, fond de dossier, dossier, lecteur, bibliothèque, fichier).</summary>
+    private static void WriteAdminShellEntries(string verb, string label, string icon, string command)
     {
-        @"Software\Classes\DesktopBackground\shell\OpenCmdAdmin",
-        @"Software\Classes\Directory\Background\shell\OpenCmdAdmin",
-        @"Software\Classes\Directory\shell\OpenCmdAdmin",
-        @"Software\Classes\Drive\shell\OpenCmdAdmin",
-        @"Software\Classes\LibraryFolder\Background\shell\OpenCmdAdmin"
-    };
+        foreach (var container in ContextMenuContainerPaths)
+        {
+            using var key = Registry.LocalMachine.CreateSubKey($@"{container}\{verb}", writable: true);
+            key.SetValue("", label);
+            key.SetValue("Icon", icon);
+            key.SetValue("HasLUAShield", "");
+            key.SetValue("Position", "Top");
+            using var cmd = key.CreateSubKey("command", writable: true);
+            cmd.SetValue("", command);
+        }
+    }
 
-    private const string RegContentCmdAdmin = @"Windows Registry Editor Version 5.00
+    /// <summary>Ajoute « Ouvrir CMD (Admin) » au clic droit (écriture directe dans le registre).</summary>
+    public static bool InstallCmdAdminContextMenu()
+    {
+        InstallToolScript(AdminTerminalScriptPath, "OpenAdminTerminal.ps1");
+        RemoveShellEntries(GetMatchingSubKeyNames);   // anciennes variantes (HKCU de l'ancien .reg, autres noms)
+        WriteAdminShellEntries(CmdAdminVerb, "Ouvrir CMD (Admin)", "cmd.exe", AdminTerminalCommand("cmd"));
+        return IsCmdAdminContextMenuEnabled();
+    }
 
-[HKEY_CURRENT_USER\Software\Classes\DesktopBackground\shell\OpenCmdAdmin]
-@=""Ouvrir CMD (Admin)""
-""Icon""=""cmd.exe""
-""HasLUAShield""=""""
-""Position""=""Top""
+    /// <summary>Ajoute « Ouvrir PowerShell (Admin) » au clic droit (écriture directe dans le registre).</summary>
+    public static bool InstallPowerShellAdminContextMenu()
+    {
+        InstallToolScript(AdminTerminalScriptPath, "OpenAdminTerminal.ps1");
+        RemoveShellEntries(GetMatchingPowerShellSubKeyNames);
+        WriteAdminShellEntries(PowerShellAdminVerb, "Ouvrir PowerShell (Admin)", "powershell.exe", AdminTerminalCommand("powershell"));
+        return IsPowerShellAdminContextMenuEnabled();
+    }
 
-[HKEY_CURRENT_USER\Software\Classes\DesktopBackground\shell\OpenCmdAdmin\command]
-@=""powershell.exe -windowstyle hidden -command \""Start-Process cmd.exe -ArgumentList '/s /k pushd \\\""%V\\\""' -Verb RunAs\""""
+    /// <summary>
+    /// À l'ouverture de l'outil : remet à niveau les entrées déjà actives (ancienne commande, emplacement « fichiers » manquant,
+    /// script absent ou d'une autre version). Uniquement en administrateur, pour ne jamais retirer sans pouvoir réécrire.
+    /// </summary>
+    public static void RefreshAdminTerminalEntriesIfInstalled()
+    {
+        if (!IsElevated()) return;
+        try
+        {
+            bool cmd = IsCmdAdminContextMenuEnabled(), ps = IsPowerShellAdminContextMenuEnabled();
+            if (!cmd && !ps) return;
+            bool scriptOk = File.Exists(AdminTerminalScriptPath) &&
+                            File.ReadAllBytes(AdminTerminalScriptPath).AsSpan().SequenceEqual(ReadEmbeddedScript("OpenAdminTerminal.ps1"));
+            if (cmd && (!scriptOk || !HasExpectedCommand(CmdAdminVerb, AdminTerminalCommand("cmd")))) InstallCmdAdminContextMenu();
+            if (ps && (!scriptOk || !HasExpectedCommand(PowerShellAdminVerb, AdminTerminalCommand("powershell")))) InstallPowerShellAdminContextMenu();
+        }
+        catch { }
+    }
 
-[HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\OpenCmdAdmin]
-@=""Ouvrir CMD (Admin)""
-""Icon""=""cmd.exe""
-""HasLUAShield""=""""
-""Position""=""Top""
-
-[HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\OpenCmdAdmin\command]
-@=""powershell.exe -windowstyle hidden -command \""Start-Process cmd.exe -ArgumentList '/s /k pushd \\\""%V\\\""' -Verb RunAs\""""
-
-[HKEY_CURRENT_USER\Software\Classes\Directory\shell\OpenCmdAdmin]
-@=""Ouvrir CMD (Admin)""
-""Icon""=""cmd.exe""
-""HasLUAShield""=""""
-""Position""=""Top""
-
-[HKEY_CURRENT_USER\Software\Classes\Directory\shell\OpenCmdAdmin\command]
-@=""powershell.exe -windowstyle hidden -command \""Start-Process cmd.exe -ArgumentList '/s /k pushd \\\""%V\\\""' -Verb RunAs\""""
-
-[HKEY_CURRENT_USER\Software\Classes\Drive\shell\OpenCmdAdmin]
-@=""Ouvrir CMD (Admin)""
-""Icon""=""cmd.exe""
-""HasLUAShield""=""""
-""Position""=""Top""
-
-[HKEY_CURRENT_USER\Software\Classes\Drive\shell\OpenCmdAdmin\command]
-@=""powershell.exe -windowstyle hidden -command \""Start-Process cmd.exe -ArgumentList '/s /k pushd \\\""%V\\\""' -Verb RunAs\""""
-
-[HKEY_CURRENT_USER\Software\Classes\LibraryFolder\Background\shell\OpenCmdAdmin]
-@=""Ouvrir CMD (Admin)""
-""Icon""=""cmd.exe""
-""HasLUAShield""=""""
-""Position""=""Top""
-
-[HKEY_CURRENT_USER\Software\Classes\LibraryFolder\Background\shell\OpenCmdAdmin\command]
-@=""powershell.exe -windowstyle hidden -command \""Start-Process cmd.exe -ArgumentList '/s /k pushd \\\""%V\\\""' -Verb RunAs\""""
-";
+    private static bool HasExpectedCommand(string verb, string command) =>
+        ContextMenuContainerPaths.All(container =>
+        {
+            using var k = Registry.LocalMachine.OpenSubKey($@"{container}\{verb}\command");
+            return k?.GetValue("") as string == command;
+        });
 
     /// <summary>
     /// Ouvre l'interface de personnalisation du menu contextuel (CMD Admin sur Bureau & dossiers).
@@ -312,7 +331,8 @@ Write-Output '[OK] Visionneuse de photos Windows activée'
         @"Software\Classes\Directory\Background\shell",
         @"Software\Classes\Directory\shell",
         @"Software\Classes\Drive\shell",
-        @"Software\Classes\LibraryFolder\Background\shell"
+        @"Software\Classes\LibraryFolder\Background\shell",
+        @"Software\Classes\*\shell"   // fichiers : la console s'ouvre dans le dossier du fichier
     };
 
     /// <summary>
@@ -373,133 +393,31 @@ Write-Output '[OK] Visionneuse de photos Windows activée'
         return false;
     }
 
-    /// <summary>
-    /// Génère un fichier .reg, l'ouvre via regedit pour confirmation utilisateur, puis supprime le fichier .reg après validation.
-    /// </summary>
-    public static bool InstallCmdAdminViaRegFile()
+    /// <summary>Supprime directement (HKCU et HKLM) les entrées de clic droit reconnues par <paramref name="matcher"/>.</summary>
+    private static void RemoveShellEntries(Func<RegistryKey, string, HashSet<string>> matcher)
     {
-        // Nettoyage préalable des éventuelles anciennes clés parasites
-        RemoveCmdAdminContextMenu();
-
-        string regPath = Path.Combine(Path.GetTempPath(), "Activer_Ouvrir_CMD_Admin.reg");
-        try
+        foreach (var hive in new[] { Registry.CurrentUser, Registry.LocalMachine })
         {
-            // Écriture du fichier .reg avec encodage Unicode officiel Windows
-            File.WriteAllText(regPath, RegContentCmdAdmin, System.Text.Encoding.Unicode);
-
-            var psi = new System.Diagnostics.ProcessStartInfo
+            foreach (var container in ContextMenuContainerPaths)
             {
-                FileName = "regedit.exe",
-                Arguments = $"\"{regPath}\"",
-                UseShellExecute = true
-            };
-
-            using var proc = System.Diagnostics.Process.Start(psi);
-            proc?.WaitForExit();
-
-            return IsCmdAdminContextMenuEnabled();
-        }
-        finally
-        {
-            // Suppression immédiate du fichier .reg temporaire après validation
-            if (File.Exists(regPath))
-            {
-                try { File.Delete(regPath); } catch { }
+                foreach (var subKey in matcher(hive, container))
+                {
+                    try
+                    {
+                        using var parent = hive.OpenSubKey(container, writable: true);
+                        parent?.DeleteSubKeyTree(subKey, throwOnMissingSubKey: false);
+                    }
+                    catch { }
+                }
             }
         }
     }
 
-    /// <summary>
-    /// Supprime proprement et définitivement toutes les entrées de CMD Admin du menu contextuel (HKCU et HKLM).
-    /// </summary>
+    /// <summary>Retire toutes les entrées « Ouvrir CMD (Admin) » du menu contextuel (HKCU et HKLM, anciens noms compris).</summary>
     public static bool RemoveCmdAdminContextMenu()
     {
-        // 1. Suppression directe via l'API .NET Registry (HKCU et HKLM)
-        foreach (var container in ContextMenuContainerPaths)
-        {
-            var keysCu = GetMatchingSubKeyNames(Registry.CurrentUser, container);
-            foreach (var subKey in keysCu)
-            {
-                try
-                {
-                    using var parentCu = Registry.CurrentUser.OpenSubKey(container, true);
-                    parentCu?.DeleteSubKeyTree(subKey, false);
-                }
-                catch { }
-            }
-
-            var keysLm = GetMatchingSubKeyNames(Registry.LocalMachine, container);
-            foreach (var subKey in keysLm)
-            {
-                try
-                {
-                    using var parentLm = Registry.LocalMachine.OpenSubKey(container, true);
-                    parentLm?.DeleteSubKeyTree(subKey, false);
-                }
-                catch { }
-            }
-        }
-
-        // 2. Nettoyage de sécurité renforcé via reg.exe
-        try
-        {
-            foreach (var container in ContextMenuContainerPaths)
-            {
-                foreach (var subKey in ContextMenuSubKeyNames)
-                {
-                    var cmdCu = $"/c reg delete \"HKCU\\{container}\\{subKey}\" /f >nul 2>&1";
-                    var cmdLm = $"/c reg delete \"HKLM\\{container}\\{subKey}\" /f >nul 2>&1";
-                    using var p1 = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe", cmdCu) { CreateNoWindow = true, UseShellExecute = false });
-                    p1?.WaitForExit(1000);
-                    using var p2 = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe", cmdLm) { CreateNoWindow = true, UseShellExecute = false });
-                    p2?.WaitForExit(1000);
-                }
-            }
-        }
-        catch { }
-
-        // 3. Si une clé persistait (ex: restriction HKLM), création d'un fichier .reg de désinstallation
-        if (IsCmdAdminContextMenuEnabled())
-        {
-            string delRegPath = Path.Combine(Path.GetTempPath(), "Supprimer_Ouvrir_CMD_Admin.reg");
-            try
-            {
-                var sb = new System.Text.StringBuilder();
-                sb.AppendLine("Windows Registry Editor Version 5.00");
-                sb.AppendLine();
-                foreach (var container in ContextMenuContainerPaths)
-                {
-                    var keysToDel = new HashSet<string>(ContextMenuSubKeyNames, StringComparer.OrdinalIgnoreCase);
-                    foreach (var k in GetMatchingSubKeyNames(Registry.CurrentUser, container)) keysToDel.Add(k);
-                    foreach (var k in GetMatchingSubKeyNames(Registry.LocalMachine, container)) keysToDel.Add(k);
-
-                    foreach (var subKey in keysToDel)
-                    {
-                        sb.AppendLine($"[-HKEY_CURRENT_USER\\{container}\\{subKey}]");
-                        sb.AppendLine($"[-HKEY_LOCAL_MACHINE\\{container}\\{subKey}]");
-                    }
-                }
-
-                File.WriteAllText(delRegPath, sb.ToString(), System.Text.Encoding.Unicode);
-                var psi = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "regedit.exe",
-                    Arguments = $"\"{delRegPath}\"",
-                    UseShellExecute = true
-                };
-                using var pReg = System.Diagnostics.Process.Start(psi);
-                pReg?.WaitForExit();
-            }
-            catch { }
-            finally
-            {
-                if (File.Exists(delRegPath))
-                {
-                    try { File.Delete(delRegPath); } catch { }
-                }
-            }
-        }
-
+        RemoveShellEntries(GetMatchingSubKeyNames);
+        if (!IsPowerShellAdminContextMenuEnabled()) RemoveToolFiles("OpenAdminTerminal.ps1");
         return !IsCmdAdminContextMenuEnabled();
     }
 
@@ -512,54 +430,6 @@ Write-Output '[OK] Visionneuse de photos Windows activée'
         "OpenPsAdmin",
         "PowerShellHereAdmin"
     };
-
-    private const string RegContentPowerShellAdmin = @"Windows Registry Editor Version 5.00
-
-[HKEY_CURRENT_USER\Software\Classes\DesktopBackground\shell\OpenPowerShellAdmin]
-@=""Ouvrir PowerShell (Admin)""
-""Icon""=""powershell.exe""
-""HasLUAShield""=""""
-""Position""=""Top""
-
-[HKEY_CURRENT_USER\Software\Classes\DesktopBackground\shell\OpenPowerShellAdmin\command]
-@=""powershell.exe -windowstyle hidden -command \""$d = '%V'; if (-not $d) { $d = [Environment]::GetFolderPath('Desktop') }; Start-Process powershell.exe -ArgumentList '-NoExit', '-Command', ('Set-Location -LiteralPath ''{0}''' -f $d) -Verb RunAs\""""
-
-[HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\OpenPowerShellAdmin]
-@=""Ouvrir PowerShell (Admin)""
-""Icon""=""powershell.exe""
-""HasLUAShield""=""""
-""Position""=""Top""
-
-[HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\OpenPowerShellAdmin\command]
-@=""powershell.exe -windowstyle hidden -command \""Start-Process powershell.exe -ArgumentList '-NoExit', '-Command', 'Set-Location -LiteralPath ''%V''' -Verb RunAs\""""
-
-[HKEY_CURRENT_USER\Software\Classes\Directory\shell\OpenPowerShellAdmin]
-@=""Ouvrir PowerShell (Admin)""
-""Icon""=""powershell.exe""
-""HasLUAShield""=""""
-""Position""=""Top""
-
-[HKEY_CURRENT_USER\Software\Classes\Directory\shell\OpenPowerShellAdmin\command]
-@=""powershell.exe -windowstyle hidden -command \""Start-Process powershell.exe -ArgumentList '-NoExit', '-Command', 'Set-Location -LiteralPath ''%V''' -Verb RunAs\""""
-
-[HKEY_CURRENT_USER\Software\Classes\Drive\shell\OpenPowerShellAdmin]
-@=""Ouvrir PowerShell (Admin)""
-""Icon""=""powershell.exe""
-""HasLUAShield""=""""
-""Position""=""Top""
-
-[HKEY_CURRENT_USER\Software\Classes\Drive\shell\OpenPowerShellAdmin\command]
-@=""powershell.exe -windowstyle hidden -command \""Start-Process powershell.exe -ArgumentList '-NoExit', '-Command', 'Set-Location -LiteralPath ''%V''' -Verb RunAs\""""
-
-[HKEY_CURRENT_USER\Software\Classes\LibraryFolder\Background\shell\OpenPowerShellAdmin]
-@=""Ouvrir PowerShell (Admin)""
-""Icon""=""powershell.exe""
-""HasLUAShield""=""""
-""Position""=""Top""
-
-[HKEY_CURRENT_USER\Software\Classes\LibraryFolder\Background\shell\OpenPowerShellAdmin\command]
-@=""powershell.exe -windowstyle hidden -command \""Start-Process powershell.exe -ArgumentList '-NoExit', '-Command', 'Set-Location -LiteralPath ''%V''' -Verb RunAs\""""
-";
 
     /// <summary>
     /// Recherche toutes les sous-clés correspondantes à PowerShell Admin (noms connus ou libellés contenant PowerShell + Admin).
@@ -619,133 +489,164 @@ Write-Output '[OK] Visionneuse de photos Windows activée'
         return false;
     }
 
-    /// <summary>
-    /// Génère un fichier .reg pour PowerShell Admin, l'ouvre via regedit pour confirmation utilisateur, puis supprime le fichier .reg après validation.
-    /// </summary>
-    public static bool InstallPowerShellAdminViaRegFile()
+    /// <summary>Retire toutes les entrées « Ouvrir PowerShell (Admin) » du menu contextuel (HKCU et HKLM, anciens noms compris).</summary>
+    public static bool RemovePowerShellAdminContextMenu()
     {
-        // Nettoyage préalable des éventuelles anciennes clés parasites
-        RemovePowerShellAdminContextMenu();
+        RemoveShellEntries(GetMatchingPowerShellSubKeyNames);
+        if (!IsCmdAdminContextMenuEnabled()) RemoveToolFiles("OpenAdminTerminal.ps1");
+        return !IsPowerShellAdminContextMenuEnabled();
+    }
 
-        string regPath = Path.Combine(Path.GetTempPath(), "Activer_Ouvrir_PowerShell_Admin.reg");
-        try
-        {
-            // Écriture du fichier .reg avec encodage Unicode officiel Windows
-            File.WriteAllText(regPath, RegContentPowerShellAdmin, System.Text.Encoding.Unicode);
+    // ─── Dossier des scripts du clic droit : C:\ProgramData\AlexToolkit ───
+    // Les scripts y sont lancés avec les droits administrateur : le dossier n'est modifiable que par les administrateurs et SYSTEM.
+    public static string ToolsDir =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "AlexToolkit");
+    public static string ForceDeleteScriptPath => Path.Combine(ToolsDir, "ForceDelete.ps1");
+    public static string AdminTerminalScriptPath => Path.Combine(ToolsDir, "OpenAdminTerminal.ps1");
+    private static string WindowsPowerShellExe => Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe");
 
-            var psi = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = "regedit.exe",
-                Arguments = $"\"{regPath}\"",
-                UseShellExecute = true
-            };
+    private static bool IsElevated()
+    {
+        using var id = System.Security.Principal.WindowsIdentity.GetCurrent();
+        return new System.Security.Principal.WindowsPrincipal(id).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+    }
 
-            using var proc = System.Diagnostics.Process.Start(psi);
-            proc?.WaitForExit();
-
-            return IsPowerShellAdminContextMenuEnabled();
-        }
-        finally
-        {
-            // Suppression immédiate du fichier .reg temporaire après validation
-            if (File.Exists(regPath))
-            {
-                try { File.Delete(regPath); } catch { }
-            }
-        }
+    private static byte[] ReadEmbeddedScript(string name)
+    {
+        using var s = typeof(PersonalizationService).Assembly.GetManifestResourceStream(name)
+            ?? throw new InvalidOperationException($"Script {name} introuvable dans l'application.");
+        using var ms = new MemoryStream();
+        s.CopyTo(ms);
+        return ms.ToArray();
     }
 
     /// <summary>
-    /// Supprime proprement et définitivement toutes les entrées de PowerShell Admin du menu contextuel (HKCU et HKLM).
+    /// Crée le dossier (ou le reprend) avec des droits « écriture pour les administrateurs seulement ».
+    /// Un dossier préexistant qui n'appartenait ni aux administrateurs ni à SYSTEM (créé par un autre utilisateur) est vidé.
     /// </summary>
-    public static bool RemovePowerShellAdminContextMenu()
+    private static void EnsureToolsDir()
     {
-        // 1. Suppression directe via l'API .NET Registry (HKCU et HKLM)
-        foreach (var container in ContextMenuContainerPaths)
+        var dir = new DirectoryInfo(ToolsDir);
+        // Un dossier qui serait un lien (jonction) est retiré : on ne suit jamais un lien vers ailleurs.
+        if (dir.Exists && dir.Attributes.HasFlag(FileAttributes.ReparsePoint)) { dir.Delete(); dir.Refresh(); }
+        bool untrusted = false;
+        if (!dir.Exists) dir.Create();
+        else
         {
-            var keysCu = GetMatchingPowerShellSubKeyNames(Registry.CurrentUser, container);
-            foreach (var subKey in keysCu)
-            {
-                try
-                {
-                    using var parentCu = Registry.CurrentUser.OpenSubKey(container, true);
-                    parentCu?.DeleteSubKeyTree(subKey, false);
-                }
-                catch { }
-            }
-
-            var keysLm = GetMatchingPowerShellSubKeyNames(Registry.LocalMachine, container);
-            foreach (var subKey in keysLm)
-            {
-                try
-                {
-                    using var parentLm = Registry.LocalMachine.OpenSubKey(container, true);
-                    parentLm?.DeleteSubKeyTree(subKey, false);
-                }
-                catch { }
-            }
+            var owner = dir.GetAccessControl().GetOwner(typeof(System.Security.Principal.SecurityIdentifier)) as System.Security.Principal.SecurityIdentifier;
+            untrusted = owner == null || !(owner.IsWellKnown(System.Security.Principal.WellKnownSidType.BuiltinAdministratorsSid)
+                                           || owner.IsWellKnown(System.Security.Principal.WellKnownSidType.LocalSystemSid));
         }
 
-        // 2. Nettoyage de sécurité renforcé via reg.exe
+        var admins = new System.Security.Principal.SecurityIdentifier(System.Security.Principal.WellKnownSidType.BuiltinAdministratorsSid, null);
+        var system = new System.Security.Principal.SecurityIdentifier(System.Security.Principal.WellKnownSidType.LocalSystemSid, null);
+        var users = new System.Security.Principal.SecurityIdentifier(System.Security.Principal.WellKnownSidType.BuiltinUsersSid, null);
+        const System.Security.AccessControl.InheritanceFlags inherit =
+            System.Security.AccessControl.InheritanceFlags.ContainerInherit | System.Security.AccessControl.InheritanceFlags.ObjectInherit;
+
+        var sec = new System.Security.AccessControl.DirectorySecurity();
+        sec.SetOwner(admins);
+        sec.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+        sec.AddAccessRule(new(system, System.Security.AccessControl.FileSystemRights.FullControl, inherit, System.Security.AccessControl.PropagationFlags.None, System.Security.AccessControl.AccessControlType.Allow));
+        sec.AddAccessRule(new(admins, System.Security.AccessControl.FileSystemRights.FullControl, inherit, System.Security.AccessControl.PropagationFlags.None, System.Security.AccessControl.AccessControlType.Allow));
+        sec.AddAccessRule(new(users, System.Security.AccessControl.FileSystemRights.ReadAndExecute, inherit, System.Security.AccessControl.PropagationFlags.None, System.Security.AccessControl.AccessControlType.Allow));
+        dir.SetAccessControl(sec);
+
+        if (untrusted)
+            foreach (var entry in dir.EnumerateFileSystemInfos()) DeleteToolEntry(entry);
+    }
+
+    private static void DeleteToolEntry(FileSystemInfo entry)
+    {
         try
         {
-            foreach (var container in ContextMenuContainerPaths)
-            {
-                foreach (var subKey in ContextMenuPowerShellSubKeyNames)
-                {
-                    var cmdCu = $"/c reg delete \"HKCU\\{container}\\{subKey}\" /f >nul 2>&1";
-                    var cmdLm = $"/c reg delete \"HKLM\\{container}\\{subKey}\" /f >nul 2>&1";
-                    using var p1 = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe", cmdCu) { CreateNoWindow = true, UseShellExecute = false });
-                    p1?.WaitForExit(1000);
-                    using var p2 = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe", cmdLm) { CreateNoWindow = true, UseShellExecute = false });
-                    p2?.WaitForExit(1000);
-                }
-            }
+            if (entry is DirectoryInfo sub && !sub.Attributes.HasFlag(FileAttributes.ReparsePoint)) sub.Delete(true);
+            else { entry.Attributes = FileAttributes.Normal; entry.Delete(); }
         }
         catch { }
+    }
 
-        // 3. Si une clé persistait (ex: restriction HKLM), création d'un fichier .reg de désinstallation
-        if (IsPowerShellAdminContextMenuEnabled())
+    /// <summary>Écrit un script embarqué dans le dossier protégé (l'ancien fichier, ou un lien posé à sa place, est d'abord supprimé).</summary>
+    private static void InstallToolScript(string path, string resourceName)
+    {
+        EnsureToolsDir();
+        var existing = new FileInfo(path);
+        if (existing.Exists) DeleteToolEntry(existing);
+        File.WriteAllBytes(path, ReadEmbeddedScript(resourceName));
+    }
+
+    /// <summary>Supprime les fichiers indiqués, puis le dossier s'il est vide.</summary>
+    private static void RemoveToolFiles(params string[] patterns)
+    {
+        try
         {
-            string delRegPath = Path.Combine(Path.GetTempPath(), "Supprimer_Ouvrir_PowerShell_Admin.reg");
-            try
-            {
-                var sb = new System.Text.StringBuilder();
-                sb.AppendLine("Windows Registry Editor Version 5.00");
-                sb.AppendLine();
-                foreach (var container in ContextMenuContainerPaths)
-                {
-                    var keysToDel = new HashSet<string>(ContextMenuPowerShellSubKeyNames, StringComparer.OrdinalIgnoreCase);
-                    foreach (var k in GetMatchingPowerShellSubKeyNames(Registry.CurrentUser, container)) keysToDel.Add(k);
-                    foreach (var k in GetMatchingPowerShellSubKeyNames(Registry.LocalMachine, container)) keysToDel.Add(k);
-
-                    foreach (var subKey in keysToDel)
-                    {
-                        sb.AppendLine($"[-HKEY_CURRENT_USER\\{container}\\{subKey}]");
-                        sb.AppendLine($"[-HKEY_LOCAL_MACHINE\\{container}\\{subKey}]");
-                    }
-                }
-
-                File.WriteAllText(delRegPath, sb.ToString(), System.Text.Encoding.Unicode);
-                var psi = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "regedit.exe",
-                    Arguments = $"\"{delRegPath}\"",
-                    UseShellExecute = true
-                };
-                using var pReg = System.Diagnostics.Process.Start(psi);
-                pReg?.WaitForExit();
-            }
-            catch { }
-            finally
-            {
-                if (File.Exists(delRegPath))
-                {
-                    try { File.Delete(delRegPath); } catch { }
-                }
-            }
+            var dir = new DirectoryInfo(ToolsDir);
+            if (!dir.Exists) return;
+            if (dir.Attributes.HasFlag(FileAttributes.ReparsePoint)) { dir.Delete(); return; }
+            foreach (var pattern in patterns)
+                foreach (var f in dir.EnumerateFiles(pattern)) DeleteToolEntry(f);
+            if (!dir.EnumerateFileSystemInfos().Any()) dir.Delete();
         }
+        catch { }
+    }
 
-        return !IsPowerShellAdminContextMenuEnabled();
+    // ─── Personnalisation : « Forcer la suppression » au clic droit (fichiers et dossiers) ───
+    private const string ForceDeleteVerb = "AlexForceDelete";
+    private static readonly string[] ForceDeleteShellKeys =
+    {
+        @"SOFTWARE\Classes\*\shell\" + ForceDeleteVerb,
+        @"SOFTWARE\Classes\Directory\shell\" + ForceDeleteVerb,
+    };
+
+    public static bool IsForceDeleteContextMenuEnabled()
+    {
+        try
+        {
+            using var k = Registry.LocalMachine.OpenSubKey(ForceDeleteShellKeys[0]);
+            return k != null && File.Exists(ForceDeleteScriptPath);
+        }
+        catch { return false; }
+    }
+
+    /// <summary>Installe le script et ajoute « Forcer la suppression » au clic droit des fichiers et dossiers.</summary>
+    public static void InstallForceDeleteContextMenu()
+    {
+        InstallToolScript(ForceDeleteScriptPath, "ForceDelete.ps1");
+
+        string command = $"\"{WindowsPowerShellExe}\" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{ForceDeleteScriptPath}\" -Path \"%1\"";
+        string icon = Path.Combine(Environment.SystemDirectory, "shell32.dll") + ",131";
+
+        foreach (var keyPath in ForceDeleteShellKeys)
+        {
+            using var key = Registry.LocalMachine.CreateSubKey(keyPath, writable: true);
+            key.SetValue("", "Forcer la suppression");
+            key.SetValue("Icon", icon);
+            using var cmd = key.CreateSubKey("command", writable: true);
+            cmd.SetValue("", command);
+        }
+    }
+
+    /// <summary>Met à jour le script installé s'il diffère de celui de cette version de l'application (administrateur uniquement).</summary>
+    public static void RefreshForceDeleteScriptIfInstalled()
+    {
+        if (!IsElevated()) return;
+        try
+        {
+            if (!IsForceDeleteContextMenuEnabled()) return;
+            if (File.ReadAllBytes(ForceDeleteScriptPath).AsSpan().SequenceEqual(ReadEmbeddedScript("ForceDelete.ps1"))) return;
+            InstallForceDeleteContextMenu();
+        }
+        catch { }
+    }
+
+    /// <summary>Retire l'entrée du clic droit et supprime le script installé (et sa DLL en cache).</summary>
+    public static bool RemoveForceDeleteContextMenu()
+    {
+        foreach (var keyPath in ForceDeleteShellKeys)
+        {
+            try { Registry.LocalMachine.DeleteSubKeyTree(keyPath, throwOnMissingSubKey: false); } catch { }
+        }
+        RemoveToolFiles("ForceDelete.ps1", "ForceDelete_*.dll");
+        return !IsForceDeleteContextMenuEnabled();
     }
 }

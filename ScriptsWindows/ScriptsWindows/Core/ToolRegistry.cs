@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -1080,19 +1080,19 @@ public static class ToolRegistry
         {
             Id = "tweak_context_menu_items",
             Name = "Menu contextuel",
-            Description = "Centre complet de personnalisation du clic droit : basculez entre le menu classique Windows 10 et le menu moderne Windows 11, et ajoutez les options pour ouvrir CMD ou PowerShell en Administrateur dans le dossier actif.",
+            Description = "Centre complet de personnalisation du clic droit : basculez entre le menu classique Windows 10 et le menu moderne Windows 11, ajoutez les options pour ouvrir CMD ou PowerShell en Administrateur dans le dossier actif, et « Forcer la suppression » pour supprimer les fichiers et dossiers qui refusent de partir.",
             Features = new[]
             {
                 "Bascule en 1 clic : Grand menu classique Windows 10 ou moderne Windows 11",
                 "Ajout de « Ouvrir CMD (Admin) » et « Ouvrir PowerShell (Admin) » au clic droit",
-                "Positionnement automatique sur le dossier actif (Images, Bureau, Documents...)",
+                "« Forcer la suppression » : programmes et services qui bloquent fermés, autorisations ignorées",
                 "Prise en compte immédiate avec rafraîchissement de l'Explorateur Windows"
             },
             Category = "PERSONNALISATION",
             SubHeading = "Menu contextuel & Clic droit",
             Icon = "🖱️",
             Action = (log, ct) => PersonalizationService.OpenContextMenuItemsDialog(log, ct),
-            Tags = new[] { "menu contextuel", "clic droit", "windows 10", "windows 11", "classique", "cmd", "powershell", "admin", "invite de commandes", "dossier", "images", "bureau", "terminal", "personnaliser" }
+            Tags = new[] { "menu contextuel", "clic droit", "windows 10", "windows 11", "classique", "cmd", "powershell", "admin", "invite de commandes", "dossier", "images", "bureau", "terminal", "personnaliser", "forcer", "suppression", "supprimer", "effacer", "bloqué", "récalcitrant", "impossible à supprimer", "fichier utilisé", "accès refusé", "autorisation", "propriétaire" }
         });
     }
 
