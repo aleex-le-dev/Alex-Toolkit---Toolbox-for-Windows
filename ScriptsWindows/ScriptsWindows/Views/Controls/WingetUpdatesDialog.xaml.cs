@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using ScriptsWindows.Core;
+using ScriptsWindows.Services;
 
 namespace ScriptsWindows.Views.Controls;
 
@@ -156,15 +157,21 @@ public partial class WingetUpdatesDialog : Window
 
         try
         {
-            int count = 0;
+            var failed = new List<string>();
             foreach (var app in selected)
-            {
-                await UpgradeApplicationAsync(app);
-                count++;
-            }
+                if (!await UpgradeApplicationAsync(app)) failed.Add(app.Name);
 
-            _onOutput($"\n✅ [TERMINÉ] {count} application(s) traitée(s).");
-            TxtFeedback.Text = "Mises à jour terminées.";
+            int ok = selected.Count - failed.Count;
+            if (failed.Count == 0)
+            {
+                _onOutput($"\n✅ [TERMINÉ] {ok} application(s) mise(s) à jour.");
+                TxtFeedback.Text = $"{ok} application(s) mise(s) à jour.";
+            }
+            else
+            {
+                _onOutput($"\n❌ [ERREUR] {ok} mise(s) à jour réussie(s), {failed.Count} en échec : {string.Join(", ", failed)} (détail dans le journal).");
+                TxtFeedback.Text = $"{ok} réussie(s), {failed.Count} en échec : {string.Join(", ", failed)}. Voir le journal.";
+            }
             await CheckUpdatesAsync();
         }
         catch (Exception ex)
@@ -185,8 +192,8 @@ public partial class WingetUpdatesDialog : Window
         btn.IsEnabled = false;
         try
         {
-            await UpgradeApplicationAsync(app);
-            TxtFeedback.Text = $"{app.Name} mis à jour.";
+            bool ok = await UpgradeApplicationAsync(app);
+            TxtFeedback.Text = ok ? $"{app.Name} mis à jour en {app.AvailableVersion}." : $"{app.Name} n'a pas été mis à jour : voir le journal.";
             await CheckUpdatesAsync();
         }
         catch (Exception ex)
@@ -200,41 +207,22 @@ public partial class WingetUpdatesDialog : Window
         }
     }
 
-    private async Task UpgradeApplicationAsync(WingetUpdateItem app)
+    /// <summary>Met à jour une application et vérifie la version installée ensuite. Renvoie true seulement si elle a changé.</summary>
+    private async Task<bool> UpgradeApplicationAsync(WingetUpdateItem app)
     {
         bool force = ChkForceUpgrade.IsChecked == true;
-        _onOutput($"\n[i] Mise à niveau de {app.Name} ({app.Id})...");
-        TxtFeedback.Text = $"Mise à niveau de {app.Name}...";
+        _onOutput($"\n[i] Mise à niveau de {app.Name} ({app.Id}) : {app.CurrentVersion} → {app.AvailableVersion}…");
+        TxtFeedback.Text = $"Mise à niveau de {app.Name}…";
 
-        string srcArg = !string.IsNullOrWhiteSpace(app.Source) ? $"--source {app.Source}" : "";
-        string upgradeCmd = $"winget upgrade --exact --id \"{app.Id}\" {srcArg} --include-unknown --accept-package-agreements --accept-source-agreements";
-
-        bool scopeOrReqMismatch = false;
-        Action<string> captureOutput = line =>
+        var r = await AppService.UpgradePackageAsync(app.Id, app.Source, app.CurrentVersion, app.AvailableVersion, force, _onOutput, _ct);
+        if (r.Updated)
         {
-            _onOutput(line);
-            if (!string.IsNullOrEmpty(line))
-            {
-                if (line.Contains("ne s’applique pas à votre système", StringComparison.OrdinalIgnoreCase) ||
-                    line.Contains("ne s'applique pas", StringComparison.OrdinalIgnoreCase) ||
-                    line.Contains("Aucune mise à niveau applicable trouvée", StringComparison.OrdinalIgnoreCase))
-                {
-                    scopeOrReqMismatch = true;
-                }
-            }
-        };
-
-        await CommandRunner.RunAsync(upgradeCmd, captureOutput, _ct);
-
-        if (scopeOrReqMismatch && force)
-        {
-            _onOutput($"\n[!] Conflit de portée (scope user vs machine) ou de type de package détecté pour {app.Name}.");
-            _onOutput($"[⚡ MODE FORCÉ] Contournement via install --force : winget install --exact --id \"{app.Id}\" --force ...");
-            string installForceCmd = $"winget install --exact --id \"{app.Id}\" {srcArg} --force --accept-package-agreements --accept-source-agreements";
-            await CommandRunner.RunAsync(installForceCmd, _onOutput, _ct);
+            _onOutput($"[OK] {app.Name} mis à jour en {app.AvailableVersion}.");
+            return true;
         }
-
-        _onOutput($"[OK] Traitement de {app.Name} terminé.");
+        _onOutput($"❌ [ERREUR] {app.Name} n'a pas été mis à jour : {r.Reason}." +
+                  (r.InstallerLog.Length > 0 ? $" Journal de l'installateur : {r.InstallerLog}" : ""));
+        return false;
     }
 
     private async void BtnUpdateAll_Click(object sender, RoutedEventArgs e)

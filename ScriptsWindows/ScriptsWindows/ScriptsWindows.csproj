@@ -33,7 +33,7 @@
     <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
 
     <!-- ── Métadonnées & Icône ─────────────────────────────────────── -->
-    <Version>4.2.57</Version>
+    <Version>4.2.61</Version>
     <Company>AleexLeDev</Company>
     <Product>Alex Toolkit</Product>
     <Copyright>© 2026 AleexLeDev</Copyright>
@@ -52,6 +52,8 @@
     <EmbeddedResource Include="Assets\Scripts\OpenAdminTerminal.ps1" LogicalName="OpenAdminTerminal.ps1" />
     <EmbeddedResource Include="Assets\Scripts\Migration\Backup-ClientPC.ps1" LogicalName="Backup-ClientPC.ps1" />
     <EmbeddedResource Include="Assets\Scripts\Migration\Restore-ClientPC.ps1" LogicalName="Restore-ClientPC.ps1" />
+    <!-- Script « Grand nettoyage » posé sur le Bureau (CleaningService.CreateDesktopCleanupScript) -->
+    <EmbeddedResource Include="Assets\Scripts\Nettoyage_Systeme_Et_Disque.ps1" LogicalName="Nettoyage_Systeme_Et_Disque.ps1" />
   </ItemGroup>
 
   <ItemGroup>

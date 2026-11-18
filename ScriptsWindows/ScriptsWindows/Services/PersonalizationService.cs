@@ -52,12 +52,23 @@ public class PersonalizationService
     // God Mode  (sys_god_mode)
     public static Task CreateGodMode(Action<string> onOutput, CancellationToken ct = default)
     {
+        AddGodModeToDesktop(onOutput);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Dossier spécial « Tous les réglages » sur le Bureau (bouton « Bureau » de la carte). Renvoie son chemin.</summary>
+    public static string AddGodModeToDesktop(Action<string>? onOutput = null)
+    {
         var dest = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
                                 "GodMode.{ED7BA470-8E54-465E-825C-99712043E01C}");
-        if (!Directory.Exists(dest))
-            Directory.CreateDirectory(dest);
-        onOutput("[OK] Dossier God Mode créé sur le Bureau");
-        return Task.CompletedTask;
+        if (Directory.Exists(dest))
+        {
+            onOutput?.Invoke("[OK] Le dossier God Mode est déjà sur le Bureau");
+            return dest;
+        }
+        Directory.CreateDirectory(dest);
+        onOutput?.Invoke("[OK] Dossier God Mode créé sur le Bureau");
+        return dest;
     }
 
     // Mode Gaming  (sys_gaming_mode)
@@ -214,6 +225,25 @@ Write-Output '[OK] Visionneuse de photos Windows activée'
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Bouton « Bureau » de la carte : crée (ou remplace) les deux boutons Arrêter / Redémarrer.
+    /// Renvoie leurs chemins ; lève une exception si l'un n'a pas pu être créé.
+    /// </summary>
+    public static string AddPowerShortcutsToDesktop(Action<string>? onOutput = null)
+    {
+        bool shutdown = CreateShutdownShortcut();
+        bool restart = CreateRestartShortcut();
+        var desktop = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        if (!shutdown || !restart)
+        {
+            string missing = string.Join(" et ", new[] { shutdown ? null : "« Arrêter le PC »", restart ? null : "« Redémarrer le PC »" }.Where(s => s != null));
+            onOutput?.Invoke($"❌ [ERREUR] Impossible de créer {missing} sur le Bureau.");
+            throw new IOException($"Impossible de créer {missing} sur le Bureau.");
+        }
+        onOutput?.Invoke("[OK] Boutons « Arrêter le PC » et « Redémarrer le PC » ajoutés sur le Bureau.");
+        return Path.Combine(desktop, ShutdownShortcutName) + "\n" + Path.Combine(desktop, RestartShortcutName);
     }
 
     // Raccourcis bureau hérités (sys_shortcuts_bureau)

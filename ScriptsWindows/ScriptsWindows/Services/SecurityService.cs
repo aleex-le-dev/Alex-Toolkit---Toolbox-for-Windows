@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using ScriptsWindows.Core;
 
 namespace ScriptsWindows.Services;
@@ -38,18 +38,6 @@ Write-Output $creds
     // Voir les menaces  (wd_threats)
     public static async Task GetDefenderThreats(Action<string> onOutput, CancellationToken ct = default)
         => await PowerShellRunner.RunAsync("Get-MpThreatDetection | Format-List *", onOutput, ct);
-
-    // Test EICAR  (av_launcher_eicar)
-    public static async Task TestEicar(Action<string> onOutput, CancellationToken ct = default)
-    {
-        await PowerShellRunner.RunAsync(@"
-$path = ""$env:TEMP\eicar_test.txt""
-$eicar = 'X5O!P%@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*'
-Set-Content -Path $path -Value $eicar -NoNewline
-Write-Output ""[i] Fichier EICAR créé : $path""
-Write-Output '[i] Votre antivirus devrait le détecter et le supprimer immédiatement'
-", onOutput, ct);
-    }
 
     /// <summary>Ouvre l'interface interactive unifiée du Centre de Surveillance et Sécurité.</summary>
     public static async Task OpenSecurityCenterDialog(Action<string> onOutput, CancellationToken ct = default)

@@ -50,6 +50,12 @@ public class ScriptTool
     /// </summary>
     public Func<Action<string>?, string>? DesktopAction { get; init; }
 
+    /// <summary>
+    /// L'outil ne fait qu'ajouter quelque chose au Bureau (ex. dossier God Mode) : la carte n'affiche que le bouton
+    /// « Bureau » (en bouton principal), pas « Exécuter ». Nécessite <see cref="DesktopAction"/>.
+    /// </summary>
+    public bool DesktopOnly { get; init; }
+
     /// <summary>Explication affichée après la création du script sur le Bureau (et en info-bulle du bouton).</summary>
     public string DesktopHint { get; init; } = "Double-cliquez sur ce fichier pour lancer l'opération sans ouvrir Alex Toolkit.";
 

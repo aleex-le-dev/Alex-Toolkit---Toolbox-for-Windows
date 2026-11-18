@@ -32,7 +32,7 @@ by AleexLeDev – diagnostiquez, réparez, optimisez et sécurisez Windows 10 & 
 * **Une fenêtre par outil** – chaque outil qui affiche un résultat a sa propre interface (listes filtrables, indicateurs, étapes suivies une à une, exports) ; les autres ouvrent directement l'outil Windows concerné.
 * **Journal d'exécution** – trace de tout ce qui a été lancé (résultats, erreurs, sortie des commandes PowerShell / CMD avec code couleur), ouvert à la demande via le bouton **Journal** (un point signale du nouveau contenu) et automatiquement en cas d'erreur. Redimensionnable, zoom avec *Ctrl + molette*, barres de progression (SFC, DISM, winget) sur une seule ligne.
 * **Un outil à la fois** – pendant l'exécution, les boutons des autres outils sont grisés.
-* **Recherche instantanée** parmi les 47 outils, en tapant une phrase (« réparer internet », « pixel mort »…) : sans accents ni majuscules, seuls les outils les plus pertinents s'affichent, **favoris** persistants et barre latérale qui se replie automatiquement.
+* **Recherche instantanée** parmi les 46 outils, en tapant une phrase (« réparer internet », « pixel mort »…) : sans accents ni majuscules, seuls les outils les plus pertinents s'affichent, **favoris** persistants et barre latérale qui se replie automatiquement.
 * **Interface sobre et cohérente** – palette neutre avec une seule couleur d'accent, icônes Windows (Segoe Fluent Icons) et **2 thèmes** *Sombre* (par défaut) et *Clair*, appliqués à toutes les fenêtres et mémorisés d'une session à l'autre.
 * **Mises à jour intégrées** – notification discrète lorsqu'une nouvelle version est publiée sur GitHub, téléchargement et remplacement automatiques.
 
@@ -40,7 +40,7 @@ by AleexLeDev – diagnostiquez, réparez, optimisez et sécurisez Windows 10 & 
 
 ## Catalogue des outils
 
-12 catégories, 47 outils (certains regroupent plusieurs outils dans des onglets). Chaque outil est enregistré dans [`Core/ToolRegistry.cs`](ScriptsWindows/ScriptsWindows/Core/ToolRegistry.cs) ; l'arborescence complète (avec les commandes associées) peut être prévisualisée et copiée depuis la page **Paramètres** de l'application.
+12 catégories, 46 outils (certains regroupent plusieurs outils dans des onglets). Chaque outil est enregistré dans [`Core/ToolRegistry.cs`](ScriptsWindows/ScriptsWindows/Core/ToolRegistry.cs) ; l'arborescence complète (avec les commandes associées) peut être prévisualisée et copiée depuis la page **Paramètres** de l'application.
 
 | Catégorie | Sous-catégorie | Outils |
 |---|---|---|
@@ -55,7 +55,7 @@ by AleexLeDev – diagnostiquez, réparez, optimisez et sécurisez Windows 10 & 
 | | Dépannage de l'imprimante et des services | Dépannage des imprimantes (déblocage en 1 clic + script Bureau) · Gérer et redémarrer les services Windows |
 | | Boutique d'applications et affichage | Réparer le Microsoft Store et les icônes blanches |
 | | Sauvegardes et points de retour | Créer ou restaurer un point de retour · Sauvegarder les pilotes |
-| 🧹 **Nettoyage & espace disque** | Nettoyage système et disque | Grand nettoyage du PC et des fichiers inutiles · Supprimer les anciennes versions des pilotes |
+| 🧹 **Nettoyage & espace disque** | Nettoyage système et disque | Grand nettoyage du PC (temporaires, caches Windows Update / navigateurs / carte graphique, rapports d'erreurs, journaux, corbeille ; en option anciennes versions des pilotes, WinSxS, vidages mémoire, Windows.old) |
 | 🔑 **Mots de passe & licences** | Mots de passe et Wi-Fi | Retrouver mes mots de passe Wi-Fi · Consulter l'historique de mes navigateurs |
 | | Licences et documents confidentiels | Retrouver ma clé Windows originale · Rechercher mes documents confidentiels |
 | 🌐 **Internet & réseau** | Connexion Internet & Wi-Fi | Centre Internet & Connexion (onglets : diagnostic et DNS, benchmark DNS, Grand Reset) · Wi-Fi (onglets : réseaux voisins, déconnexions) |
@@ -194,7 +194,7 @@ Alex-Toolkit---Toolbox-for-Windows/
         ├── Assets/Styles/            ← Theme.xaml (jetons de couleur, typo, rayons), Controls.xaml (boutons, navigation, défilement)
         ├── Models/                   ← ScriptTool, ToolCategory, UpdateModels
         ├── Core/
-        │   ├── ToolRegistry.cs              ← Catalogue des 47 outils + CommandMap
+        │   ├── ToolRegistry.cs              ← Catalogue des 46 outils + CommandMap
         │   ├── PowerShellRunner.cs          ← Exécution PowerShell asynchrone (UTF-8, annulation)
         │   ├── CommandRunner.cs             ← Exécution CMD / winget / netsh… avec sortie live
         │   ├── ScriptExecutionCoordinator.cs← Un seul script à la fois, verrouillage et interruption

@@ -167,6 +167,9 @@ public partial class DefenderScanDialog : Window
             ct => DefenderService.RemoveActiveThreatsAsync(ct), "Menaces neutralisées");
     }
 
+    private void BtnAvTest_Click(object sender, RoutedEventArgs e)
+        => new AntivirusTestDialog(_onOutput, _ct) { Owner = this }.ShowDialog();
+
     private void BtnWindowsSecurity_Click(object sender, RoutedEventArgs e)
     {
         try { Process.Start(new ProcessStartInfo("windowsdefender://threat") { UseShellExecute = true }); } catch { }

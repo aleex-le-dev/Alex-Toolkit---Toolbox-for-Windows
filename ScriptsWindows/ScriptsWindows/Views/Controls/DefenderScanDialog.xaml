@@ -173,6 +173,8 @@
         <!-- Pied -->
         <DockPanel Grid.Row="5" Margin="0,14,0,0">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="Tester l'antivirus" Style="{StaticResource ActionButton}" Margin="0,0,8,0" Click="BtnAvTest_Click"
+                        ToolTip="Vérifie que l'antivirus réagit vraiment, avec des faux virus officiels et inoffensifs (EICAR, AMSI)"/>
                 <Button Content="Sécurité Windows" Style="{StaticResource ActionButton}" Margin="0,0,8,0" Click="BtnWindowsSecurity_Click"
                         ToolTip="Ouvre l'application Sécurité Windows (historique de protection, exclusions, quarantaine)"/>
                 <Button Content="Fermer" Style="{StaticResource ActionButton}" Click="BtnClose_Click"/>

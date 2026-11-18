@@ -157,9 +157,9 @@ public class CommandRunner
     }
 
     /// <summary>
-    /// Exécute une commande cmd avec callback ligne par ligne (sortie live).
+    /// Exécute une commande cmd avec callback ligne par ligne (sortie live). Renvoie le code de sortie.
     /// </summary>
-    public static async Task RunAsync(string command, Action<string> onOutput, CancellationToken ct = default)
+    public static async Task<int> RunAsync(string command, Action<string> onOutput, CancellationToken ct = default)
     {
         var encoding = GetSafeEncoding(command);
 
@@ -194,6 +194,7 @@ public class CommandRunner
             try { proc.Kill(entireProcessTree: true); } catch { }
             throw;
         }
+        return proc.ExitCode;
     }
 
     /// <summary>

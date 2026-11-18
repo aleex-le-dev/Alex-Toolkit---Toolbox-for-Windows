@@ -184,12 +184,9 @@ try {
         TxtFeedback.Text = "Historique des menaces affiché dans la console.";
     }
 
-    private async void BtnEicar_Click(object sender, RoutedEventArgs e)
-    {
-        TxtFeedback.Text = "Création du fichier test EICAR...";
-        await SecurityService.TestEicar(_onOutput, _ct);
-        TxtFeedback.Text = "Fichier EICAR créé — vérifiez la réaction de l'antivirus.";
-    }
+    /// <summary>Test de l'antivirus avec faux virus (EICAR, archive, AMSI) et vérification de sa réaction.</summary>
+    private void BtnEicar_Click(object sender, RoutedEventArgs e)
+        => new AntivirusTestDialog(_onOutput, _ct) { Owner = this }.ShowDialog();
 
     private void BtnOpenWindowsSecurity_Click(object sender, RoutedEventArgs e)
     {

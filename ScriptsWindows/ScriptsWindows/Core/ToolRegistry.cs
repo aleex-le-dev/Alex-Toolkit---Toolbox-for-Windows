@@ -70,9 +70,8 @@ public static class ToolRegistry
         ["repair_restore_point"] = "AlexToolkit.exe (Points de restauration système Windows)",
         ["repair_export_drivers"] = "AlexToolkit.exe (interface : DriverBackupDialog — pnputil /export-driver, /add-driver)",
 
-        // ─── Nettoyage (2) ───
-        ["clean_system_unified"] = "AlexToolkit.exe (Interface interactive : Cleanmgr, temporaires, corbeille, caches et WinSxS)",
-        ["clean_driver_store"] = "AlexToolkit.exe (interface : DriverStoreCleanupDialog — pnputil /enum-drivers /format xml, /delete-driver sans /force)",
+        // ─── Nettoyage (1) ───
+        ["clean_system_unified"] = "AlexToolkit.exe (CleanupCatalog : temporaires, Windows Update, optimisation de livraison, caches navigateurs / miniatures / shaders, WER, journaux CBS > 7 j, corbeille (SHEmptyRecycleBin), DNS ; avancés : anciennes versions des pilotes (pnputil /delete-driver sans /force), DISM /ResetBase, vidages mémoire, Windows.old (cleanmgr /sagerun))",
 
         // ─── Secrets et Clés (4) ───
         ["sec_wifi_show"] = "AlexToolkit.exe (interface : WifiPasswordsDialog — netsh wlan show profile key=clear)",
@@ -595,12 +594,12 @@ public static class ToolRegistry
         {
             Id = "clean_system_unified",
             Name = "Grand nettoyage du PC et des fichiers inutiles",
-            Description = "Supprime les fichiers temporaires, vide la corbeille, nettoie les traces de navigation et libère plusieurs gigaoctets d'espace disque en toute sécurité.",
+            Description = "Libère de l'espace en un clic : temporaires, caches (Windows Update, navigateurs, carte graphique), rapports d'erreurs, corbeille, et en option anciennes versions des pilotes, WinSxS et Windows.old.",
             Features = new[]
             {
-                "Fichiers temporaires utilisateur, système et caches",
-                "Vidage automatique de la Corbeille de tous les disques",
-                "Nettoyage du magasin de composants Windows WinSxS"
+                "Taille récupérable de chaque élément et espace réellement libéré",
+                "Recommandés sans risque, avancés avec leur contrepartie expliquée",
+                "Anciennes versions des pilotes, WinSxS, vidages mémoire, Windows.old"
             },
             Category = "NETTOYAGE",
             SubHeading = "Nettoyage système et disque",
@@ -608,26 +607,13 @@ public static class ToolRegistry
             Action = (log, ct) => CleaningService.OpenSystemCleanupDialog(log, ct),
             DesktopAction = log => CleaningService.CreateDesktopCleanupScript(log),
             DesktopHint = "Double-cliquez dessus à tout moment pour lancer le nettoyage complet avec le détail de l'espace libéré.",
-            Tags = new[] { "nettoyer", "libérer", "espace", "disque", "temporaires", "corbeille", "cache", "navigateurs", "cleanmgr", "accélérer" }
+            Tags = new[] { "nettoyer", "libérer", "espace", "disque", "temporaires", "corbeille", "cache", "navigateurs", "cleanmgr", "accélérer",
+                           "pilotes", "drivers", "anciennes versions", "anciens pilotes", "driverstore", "pnputil", "winsxs", "windows.old", "windows update",
+                           "rapports d'erreurs", "dump", "shaders", "plein", "saturé" }
         });
 
-        _allTools.Add(new ScriptTool
-        {
-            Id = "clean_driver_store",
-            Name = "Supprimer les anciennes versions des pilotes",
-            Description = "À chaque mise à jour d'un pilote, Windows garde l'ancienne version. Repère celles qui ont été remplacées (carte graphique, son, puce…) et les supprime pour libérer de l'espace.",
-            Features = new[]
-            {
-                "Anciennes versions listées avec leur taille et la version qui les remplace",
-                "La version la plus récente de chaque pilote est toujours conservée",
-                "Pilotes encore en service protégés (jamais supprimés)"
-            },
-            Category = "NETTOYAGE",
-            SubHeading = "Nettoyage système et disque",
-            Icon = "🧹",
-            Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.DriverStoreCleanupDialog(log, ct)),
-            Tags = new[] { "pilotes", "drivers", "anciennes versions", "anciens", "vieux", "obsolètes", "doublons", "magasin", "driverstore", "filerepository", "nettoyer", "libérer", "espace", "carte graphique", "nvidia", "amd", "intel", "pnputil" }
-        });
+        // « Anciennes versions des pilotes » (ex-carte clean_driver_store) : élément du Grand nettoyage,
+        // avec un bouton « Détail » vers DriverStoreCleanupDialog.
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1028,18 +1014,19 @@ public static class ToolRegistry
         {
             Id = "sec_defender_quickscan",
             Name = "Analyse antivirus rapide en 1 clic",
-            Description = "État de Microsoft Defender, mise à jour des signatures, analyse rapide ou complète et liste des menaces détectées.",
+            Description = "État de Microsoft Defender, mise à jour des signatures, analyse rapide ou complète, menaces détectées, et test de l'antivirus avec des faux virus inoffensifs.",
             Features = new[]
             {
                 "Protection, signatures et dernière analyse en un coup d'œil",
-                "Analyse rapide ou complète avec chronomètre",
-                "Menaces détectées et neutralisation en 1 clic"
+                "Analyse rapide ou complète, menaces neutralisées en 1 clic",
+                "Tester l'antivirus : faux virus EICAR, archive ZIP, script AMSI"
             },
             Category = "SECURITE",
             SubHeading = "Vérifications express",
             Icon = "⚡",
             Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.DefenderScanDialog(log, ct)),
-            Tags = new[] { "antivirus", "scan", "rapide", "analyse", "virus", "menaces", "defender", "sécurité" }
+            Tags = new[] { "antivirus", "scan", "rapide", "analyse", "virus", "menaces", "defender", "sécurité",
+                           "tester", "test", "eicar", "faux virus", "faux positif", "amsi", "fonctionne", "vérifier l'antivirus" }
         });
 
         _allTools.Add(new ScriptTool
@@ -1117,6 +1104,10 @@ public static class ToolRegistry
             SubHeading = "Options et réglages système",
             Icon = "👑",
             Action = (log, ct) => PersonalizationService.CreateGodMode(log, ct),
+            // Ajoute seulement un dossier au Bureau : carte avec le seul bouton « Bureau », comme les autres scripts du Bureau
+            DesktopOnly = true,
+            DesktopAction = log => PersonalizationService.AddGodModeToDesktop(log),
+            DesktopHint = "Ouvrez le dossier « GodMode » du Bureau pour accéder à plus de 200 réglages de Windows classés par thème.",
             Tags = new[] { "god mode", "réglages", "options", "panneau de configuration", "raccourci", "pratique", "bureau" }
         });
 
@@ -1129,12 +1120,16 @@ public static class ToolRegistry
             {
                 "Bouton Arrêter le PC avec l'icône rouge officielle Power (shell32.dll, 27)",
                 "Bouton Redémarrer le PC avec l'icône officielle de redémarrage (shell32.dll, 238)",
-                "Gestionnaire interactif avec vérification en temps réel du Bureau"
+                "Ajoutés en un clic sur le Bureau (remplacés s'ils existent déjà)"
             },
             Category = "PERSONNALISATION",
             SubHeading = "Raccourcis et ergonomie du Bureau",
             Icon = "⚡",
             Action = (log, ct) => PersonalizationService.OpenPowerShortcutsDialog(log, ct),
+            // Ajoute seulement deux raccourcis au Bureau : carte avec le seul bouton « Bureau »
+            DesktopOnly = true,
+            DesktopAction = log => PersonalizationService.AddPowerShortcutsToDesktop(log),
+            DesktopHint = "Double-cliquez sur « Arrêter le PC » ou « Redémarrer le PC » : l'ordinateur s'éteint ou redémarre aussitôt (enregistrez votre travail avant). Pour les retirer, supprimez-les du Bureau.",
             Tags = new[] { "éteindre", "arrêter", "redémarrer", "bureau", "bouton", "raccourci", "icône", "power", "shutdown", "reboot", "personnalisation" }
         });
 

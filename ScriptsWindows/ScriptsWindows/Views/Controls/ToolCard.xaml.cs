@@ -67,7 +67,21 @@ public partial class ToolCard : UserControl
         PopulateFeatures(tool);
 
         BtnDesktop.Visibility = tool.DesktopAction != null ? Visibility.Visible : Visibility.Collapsed;
-        BtnDesktop.ToolTip = $"Créer sur le Bureau un script autonome : {tool.DesktopHint}";
+        bool desktopOnly = tool.DesktopOnly && tool.DesktopAction != null;
+        BtnRun.Visibility = desktopOnly ? Visibility.Collapsed : Visibility.Visible;
+        if (desktopOnly)
+        {
+            // Seule action de la carte : bouton principal, sans marge à droite
+            BtnDesktop.SetResourceReference(StyleProperty, "PrimaryActionButton");
+            BtnDesktop.Margin = new Thickness(0);
+            BtnDesktop.ToolTip = $"Ajouter au Bureau : {tool.DesktopHint}";
+        }
+        else
+        {
+            BtnDesktop.SetResourceReference(StyleProperty, "ActionButton");
+            BtnDesktop.Margin = new Thickness(0, 0, 8, 0);
+            BtnDesktop.ToolTip = $"Créer sur le Bureau un script autonome : {tool.DesktopHint}";
+        }
     }
 
     private void PopulateFeatures(ScriptTool tool)
@@ -223,9 +237,9 @@ public partial class ToolCard : UserControl
             string scriptPath = _tool.DesktopAction(log);
 
             AppMessageBox.Show(
-                $"Le script « {_tool.Title} » a été créé sur votre Bureau :\n\n" +
+                (_tool.DesktopOnly ? $"« {_tool.Title} » a été ajouté sur votre Bureau :\n\n" : $"Le script « {_tool.Title} » a été créé sur votre Bureau :\n\n") +
                 $"{scriptPath}\n\n{_tool.DesktopHint}",
-                "Script ajouté au Bureau — Alex Toolkit",
+                "Ajouté au Bureau — Alex Toolkit",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
         }

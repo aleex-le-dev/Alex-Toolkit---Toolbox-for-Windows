@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using ScriptsWindows.Core;
 
@@ -40,6 +41,109 @@ public class AppService
 
     public static async Task UpdateAll(Action<string> onOutput, CancellationToken ct = default)
         => await CommandRunner.RunAsync("winget upgrade --all --accept-package-agreements --accept-source-agreements", onOutput, ct);
+
+    // ─── Mise à jour d'un paquet Winget avec vérification réelle ───────────────
+
+    /// <summary>Résultat vérifié : Updated = la version installée a réellement changé.</summary>
+    public record WingetUpgradeResult(bool Updated, int ExitCode, string InstallerLog, string Reason);
+
+    // « Le journal du programme d’installation est disponible à l’adresse suivante : C:\…\X.log » / « Installer log is available at: … »
+    private static readonly System.Text.RegularExpressions.Regex LogPathRegex =
+        new(@"([A-Za-z]:\\[^\r\n""]+?\.log)\s*$", System.Text.RegularExpressions.RegexOptions.Compiled);
+    // « Le programme d’installation a échoué avec le code de sortie : 1603 » / « Installer failed with exit code: 1603 »
+    private static readonly System.Text.RegularExpressions.Regex InstallerCodeRegex =
+        new(@"(?:code de sortie|exit code)\s*:\s*(-?\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    /// <summary>
+    /// Met à jour un paquet et vérifie la version réellement installée ensuite (winget ne suffit pas : un
+    /// installateur MSI peut échouer alors que la commande semble s'être déroulée). Cas réparés automatiquement :
+    /// MSI déjà installé « pour tous les utilisateurs » alors que winget le met à jour pour le seul compte courant
+    /// (journal MSI : « already installed for everyone … pass ALLUSERS=1 », erreur 1603) → nouvel essai avec
+    /// --custom "ALLUSERS=1" (l'appli tourne en administrateur). Mode forcé : install --force si winget ne trouve
+    /// pas de mise à jour applicable (conflit de portée ou de type de paquet).
+    /// </summary>
+    public static async Task<WingetUpgradeResult> UpgradePackageAsync(string id, string source, string fromVersion, string toVersion,
+                                                                      bool force, Action<string> log, CancellationToken ct)
+    {
+        string src = string.IsNullOrWhiteSpace(source) ? "" : $" --source {source}";
+        string args = $"--exact --id \"{id}\"{src} --include-unknown --accept-package-agreements --accept-source-agreements --disable-interactivity";
+
+        var run = await RunWingetCapturedAsync($"winget upgrade {args}", log, ct);
+        if (!run.Ok && NeedsAllUsers(run.InstallerLog))
+        {
+            log("[!] Ce logiciel est installé pour tous les utilisateurs, mais winget le mettait à jour pour ce seul compte : " +
+                "nouvel essai pour tous les utilisateurs (ALLUSERS=1)…");
+            run = await RunWingetCapturedAsync($"winget upgrade {args} --custom \"ALLUSERS=1\"", log, ct);
+        }
+        else if (!run.Ok && run.NotApplicable && force)
+        {
+            log("[!] Aucune mise à jour applicable selon winget (conflit de portée ou de type de paquet) : réinstallation forcée (install --force)…");
+            run = await RunWingetCapturedAsync($"winget install {args.Replace(" --include-unknown", "")} --force", log, ct);
+        }
+
+        // Vérification réelle : la version installée a-t-elle changé ?
+        bool? stillOld = await IsStillOutdatedAsync(id, fromVersion, toVersion, ct);
+        // Indéterminé (paquet absent de « winget list ») : on se fie au code de retour.
+        if (stillOld == false || (stillOld == null && run.Ok)) return new(true, run.Code, run.InstallerLog, "");
+
+        string reason = run.NotApplicable ? "winget ne trouve aucune mise à jour applicable (installé autrement : autre portée ou autre type de paquet)"
+                      : NeedsAllUsers(run.InstallerLog) ? "installé pour tous les utilisateurs et la mise à jour pour tous a aussi échoué"
+                      : run.InstallerCode is int c ? $"l'installateur a échoué (code {c}{(c == 1603 ? " : erreur fatale de l'installation" : c == 1618 ? " : une autre installation est en cours" : "")})"
+                      : run.Code != 0 ? $"winget a échoué (code 0x{run.Code:X8})"
+                      : "la version installée n'a pas changé";
+        return new(false, run.Code, run.InstallerLog, reason);
+    }
+
+    private record WingetRun(int Code, bool Ok, bool NotApplicable, string InstallerLog, int? InstallerCode);
+
+    private static async Task<WingetRun> RunWingetCapturedAsync(string command, Action<string> log, CancellationToken ct)
+    {
+        string installerLog = ""; bool notApplicable = false; int? installerCode = null;
+        int code = await CommandRunner.RunAsync(command, line =>
+        {
+            log(line);
+            if (string.IsNullOrEmpty(line)) return;
+            var m = LogPathRegex.Match(line);
+            if (m.Success) installerLog = m.Groups[1].Value.Trim();
+            var c = InstallerCodeRegex.Match(line);
+            if (c.Success && int.TryParse(c.Groups[1].Value, out int ic)) installerCode = ic;
+            if (line.Contains("ne s’applique pas", StringComparison.OrdinalIgnoreCase) || line.Contains("ne s'applique pas", StringComparison.OrdinalIgnoreCase)
+                || line.Contains("Aucune mise à niveau applicable", StringComparison.OrdinalIgnoreCase) || line.Contains("No applicable upgrade", StringComparison.OrdinalIgnoreCase))
+                notApplicable = true;
+        }, ct);
+        return new(code, code == 0 && installerCode is null or 0 or 3010, notApplicable, installerLog, installerCode);
+    }
+
+    /// <summary>Le journal MSI indique un produit installé pour tous les utilisateurs (mise à jour à faire avec ALLUSERS=1).</summary>
+    internal static bool NeedsAllUsers(string installerLog)
+    {
+        if (string.IsNullOrEmpty(installerLog) || !File.Exists(installerLog)) return false;
+        try
+        {
+            string text = File.ReadAllText(installerLog);   // journaux MSI en UTF-16 avec BOM : détecté
+            return text.Contains("ALLUSERS=1", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("installed for everyone", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("installé pour tous les utilisateurs", StringComparison.OrdinalIgnoreCase);
+        }
+        catch { return false; }
+    }
+
+    /// <summary>true = toujours l'ancienne version ; false = nouvelle version installée ; null = indéterminé.</summary>
+    internal static async Task<bool?> IsStillOutdatedAsync(string id, string fromVersion, string toVersion, CancellationToken ct)
+    {
+        try
+        {
+            string output = await CommandRunner.RunAsync($"winget list --exact --id \"{id}\" --accept-source-agreements --disable-interactivity", ct);
+            var line = output.Split('\n').FirstOrDefault(l => l.Contains(id, StringComparison.OrdinalIgnoreCase));
+            if (line == null) return null;
+            var tokens = line.Split(new[] { ' ', '\t', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+            if (fromVersion.Length > 0 && tokens.Contains(fromVersion)) return true;
+            if (toVersion.Length > 0 && tokens.Contains(toVersion)) return false;
+            return null;
+        }
+        catch (OperationCanceledException) { throw; }
+        catch { return null; }
+    }
 
     public static async Task Install(string wingetId, string name, Action<string> onOutput, CancellationToken ct = default)
     {
