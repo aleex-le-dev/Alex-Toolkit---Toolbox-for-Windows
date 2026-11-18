@@ -33,7 +33,7 @@
     <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
 
     <!-- ── Métadonnées & Icône ─────────────────────────────────────── -->
-    <Version>4.2.48</Version>
+    <Version>4.2.57</Version>
     <Company>AleexLeDev</Company>
     <Product>Alex Toolkit</Product>
     <Copyright>© 2026 AleexLeDev</Copyright>
@@ -50,6 +50,8 @@
     <!-- Scripts du menu contextuel installés dans C:\ProgramData\AlexToolkit (PersonalizationService) -->
     <EmbeddedResource Include="Assets\Scripts\ForceDelete.ps1" LogicalName="ForceDelete.ps1" />
     <EmbeddedResource Include="Assets\Scripts\OpenAdminTerminal.ps1" LogicalName="OpenAdminTerminal.ps1" />
+    <EmbeddedResource Include="Assets\Scripts\Migration\Backup-ClientPC.ps1" LogicalName="Backup-ClientPC.ps1" />
+    <EmbeddedResource Include="Assets\Scripts\Migration\Restore-ClientPC.ps1" LogicalName="Restore-ClientPC.ps1" />
   </ItemGroup>
 
   <ItemGroup>

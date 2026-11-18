@@ -66,7 +66,7 @@ Get-PhysicalDisk | ForEach-Object {
     public static Task LaunchDxdiag(Action<string> onOutput, CancellationToken ct = default)
     {
         onOutput("[i] Lancement de DxDiag — Outil de diagnostic DirectX...");
-        CommandRunner.StartProcess("dxdiag.exe");
+        CommandRunner.StartProcess("dxdiag.exe", "/whql:off");   // /whql:off : pas de question sur la signature des pilotes
         onOutput("[OK] DxDiag ouvert");
         return Task.CompletedTask;
     }

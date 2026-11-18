@@ -48,13 +48,14 @@ public static class ToolRegistry
     {
         // ─── Diagnostic (4) ───
         ["diag_center"] = "AlexToolkit.exe (Centre de diagnostic unifié : carte mère, BIOS, CPU, RAM, disques S.M.A.R.T., batterie, réseau)",
-        ["diag_dxdiag"] = "dxdiag.exe",
-        ["diag_startup_manager"] = "AlexToolkit.exe (Gestionnaire des programmes au démarrage de Windows)",
+        ["diag_dxdiag"] = "dxdiag.exe /whql:off",
+        ["diag_startup_manager"] = "Registre Run / Run (WOW6432Node) / dossiers Démarrage + état StartupApproved (comme le Gestionnaire des tâches), StartupTask des applications du Store, tâches planifiées à l'ouverture de session (schtasks /ENABLE | /DISABLE)",
         ["nov_win11_ai_audit"] = "AlexToolkit.exe (Audit d'éligibilité Windows 11 24H2, TPM 2.0 et NPU)",
         ["diag_intervention"] = "AlexToolkit.exe (Checkup : Checkpoint-Computer, nettoyage, Update-MpSignature + Start-MpScan, DISM/SFC, winget upgrade --all → rapport HTML)",
         ["diag_crash_drivers"] = "Get-WinEvent (BugCheck 1001, Kernel-Power 41) + Win32_PnPEntity + pnputil.exe /scan-devices",
 
-        // ─── Matériel (4) ───
+        // ─── Matériel (5) ───
+        ["hw_interactive_tests"] = "AlexToolkit.exe (onglets : écran plein écran, clavier par scancodes, souris, son winmm gauche/droite, micro waveIn, webcam Get-PnpDevice)",
         ["hw_winsat"] = "winsat.exe formal -restart clean + lecture du DataStore WinSAT (XML) → jauge, graphiques, comparatifs, historique",
         ["hw_powercfg_energy"] = "AlexToolkit.exe (interface : BatteryDialog — powercfg /batteryreport /xml + /energy /xml)",
         ["hw_power_perf"] = "AlexToolkit.exe (Interface de gestion des modes d'alimentation : Normal, Performances élevées, Performances ultimes)",
@@ -69,8 +70,9 @@ public static class ToolRegistry
         ["repair_restore_point"] = "AlexToolkit.exe (Points de restauration système Windows)",
         ["repair_export_drivers"] = "AlexToolkit.exe (interface : DriverBackupDialog — pnputil /export-driver, /add-driver)",
 
-        // ─── Nettoyage (1) ───
+        // ─── Nettoyage (2) ───
         ["clean_system_unified"] = "AlexToolkit.exe (Interface interactive : Cleanmgr, temporaires, corbeille, caches et WinSxS)",
+        ["clean_driver_store"] = "AlexToolkit.exe (interface : DriverStoreCleanupDialog — pnputil /enum-drivers /format xml, /delete-driver sans /force)",
 
         // ─── Secrets et Clés (4) ───
         ["sec_wifi_show"] = "AlexToolkit.exe (interface : WifiPasswordsDialog — netsh wlan show profile key=clear)",
@@ -88,7 +90,8 @@ public static class ToolRegistry
         ["disk_diskpart"] = "diskpart.exe",
         ["disk_defrag_gui"] = "dfrgui.exe",
         ["disk_bitlocker"] = "manage-bde.exe -status",
-        ["disk_profile_migration"] = "robocopy.exe /E /XJ /MT:8 + netsh wlan export/add profile + winget export/import",
+        ["disk_profile_migration"] = "robocopy.exe /E /XJ en 2 passes (petits fichiers /MT:16, gros fichiers 1 thread) + netsh wlan export/add profile + winget export/import ; intervention client : Backup-ClientPC.ps1 / Restore-ClientPC.ps1",
+        ["disk_speed_test"] = "Mesure sans cache (FILE_FLAG_NO_BUFFERING + écriture directe) : séquentiel 1 Mo, aléatoire 4 Ko, création de fichiers de 16 Ko ; historique %LocalAppData%\\ScriptsWindows\\drive_speeds.json",
 
         // ─── Applications (2) ───
         ["app_installer_center"] = "AlexToolkit.exe (Installation d'applications unifiée : Chrome, VLC, 7-Zip, Sumatra PDF, PowerShell 7, Office, ArtCraft)",
@@ -294,12 +297,12 @@ public static class ToolRegistry
         {
             Id = "diag_startup_manager",
             Name = "Accélérer le démarrage de Windows",
-            Description = "Affiche la liste des logiciels qui se lancent au démarrage et vous permet de désactiver ceux qui ralentissent inutilement votre PC.",
+            Description = "Liste tout ce qui se lance avec Windows (comme le Gestionnaire des tâches, plus les applications du Store et les tâches planifiées) et désactive en un clic ce qui ralentit le PC, sans rien supprimer.",
             Features = new[]
             {
-                "Inventaire des applications lancées au boot",
-                "Mesure de l'impact sur le temps de démarrage",
-                "Activation / désactivation en 1 clic sans risque"
+                "Mêmes sources et même état que le Gestionnaire des tâches",
+                "Éditeur, fichier introuvable, applications du Store, tâches à l'ouverture de session",
+                "Activation / désactivation réversible, rien n'est supprimé"
             },
             Category = "DIAGNOSTIC",
             SubHeading = "Vérifications rapides",
@@ -420,6 +423,29 @@ public static class ToolRegistry
             Icon = "🔋",
             Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.BatteryDialog(log, ct)),
             Tags = new[] { "batterie", "autonomie", "énergie", "consommation", "économiser", "rapport", "portable" }
+        });
+
+        _allTools.Add(new ScriptTool
+        {
+            Id = "hw_interactive_tests",
+            Name = "Tester l'écran, le clavier, le son et la webcam",
+            Description = "Tests interactifs pour contrôler un PC ou un écran : pixels morts, touches du clavier, boutons de la souris, haut-parleurs gauche / droite, micro et webcam.",
+            Features = new[]
+            {
+                "Écran plein écran couleur par couleur (pixels morts, fuites de lumière)",
+                "Clavier complet qui s'allume touche par touche, souris et molette",
+                "Bip gauche / droite, niveau du micro et enregistrement, webcam"
+            },
+            Category = "MATERIEL",
+            SubHeading = "Tests des périphériques",
+            Icon = "🖥️",
+            Action = (log, ct) => DialogHelper.ShowToolAsync(
+                "Tests du matériel",
+                ("Écran", new Views.Controls.ScreenTestView(log, ct)),
+                ("Clavier et souris", new Views.Controls.KeyboardTestView(log, ct)),
+                ("Son et micro", new Views.Controls.AudioTestView(log, ct)),
+                ("Webcam", new Views.Controls.CameraTestView(log, ct))),
+            Tags = new[] { "test", "tester", "écran", "pixel mort", "pixels", "moniteur", "clavier", "touche", "touches", "souris", "molette", "pavé tactile", "son", "haut-parleur", "casque", "micro", "microphone", "webcam", "caméra", "périphériques", "contrôle", "occasion" }
         });
     }
 
@@ -583,6 +609,24 @@ public static class ToolRegistry
             DesktopAction = log => CleaningService.CreateDesktopCleanupScript(log),
             DesktopHint = "Double-cliquez dessus à tout moment pour lancer le nettoyage complet avec le détail de l'espace libéré.",
             Tags = new[] { "nettoyer", "libérer", "espace", "disque", "temporaires", "corbeille", "cache", "navigateurs", "cleanmgr", "accélérer" }
+        });
+
+        _allTools.Add(new ScriptTool
+        {
+            Id = "clean_driver_store",
+            Name = "Supprimer les anciennes versions des pilotes",
+            Description = "À chaque mise à jour d'un pilote, Windows garde l'ancienne version. Repère celles qui ont été remplacées (carte graphique, son, puce…) et les supprime pour libérer de l'espace.",
+            Features = new[]
+            {
+                "Anciennes versions listées avec leur taille et la version qui les remplace",
+                "La version la plus récente de chaque pilote est toujours conservée",
+                "Pilotes encore en service protégés (jamais supprimés)"
+            },
+            Category = "NETTOYAGE",
+            SubHeading = "Nettoyage système et disque",
+            Icon = "🧹",
+            Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.DriverStoreCleanupDialog(log, ct)),
+            Tags = new[] { "pilotes", "drivers", "anciennes versions", "anciens", "vieux", "obsolètes", "doublons", "magasin", "driverstore", "filerepository", "nettoyer", "libérer", "espace", "carte graphique", "nvidia", "amd", "intel", "pnputil" }
         });
     }
 
@@ -782,6 +826,24 @@ public static class ToolRegistry
 
         _allTools.Add(new ScriptTool
         {
+            Id = "disk_speed_test",
+            Name = "Tester la vitesse d'une clé USB ou d'un disque",
+            Description = "Mesure la vitesse réelle d'une clé USB, d'un disque dur ou d'un SSD et compare tous vos supports déjà testés, gardés en mémoire avec leur nom.",
+            Features = new[]
+            {
+                "Écriture et lecture, accès 4 Ko et petits fichiers, sans le cache de Windows",
+                "Verdict et temps de copie estimés (vidéos, documents, profil complet)",
+                "Comparatif de toutes vos clés et disques, renommables"
+            },
+            Category = "DISQUE",
+            SubHeading = "Organisation et gestion des disques",
+            Icon = "🚀",
+            Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.DriveSpeedDialog(log, ct)),
+            Tags = new[] { "vitesse", "débit", "test", "tester", "clé usb", "clé", "disque dur", "ssd", "nvme", "comparer", "comparatif", "lent", "rapide", "lecture", "écriture", "benchmark", "crystaldiskmark", "carte sd", "mo/s" }
+        });
+
+        _allTools.Add(new ScriptTool
+        {
             Id = "disk_diskpart",
             Name = "Nettoyage avancé de disque (Diskpart)",
             Description = "Invite de commandes avancée pour formater, effacer ou réparer un disque dur ou une clé USB récalcitrante.",
@@ -839,18 +901,18 @@ public static class ToolRegistry
         {
             Id = "disk_profile_migration",
             Name = "Sauvegarder et transférer un profil utilisateur",
-            Description = "Copie les fichiers personnels, favoris, réseaux Wi-Fi et la liste des logiciels vers une clé USB ou un disque, puis restaure le tout sur un nouveau PC.",
+            Description = "Copie les fichiers personnels, favoris, réseaux Wi-Fi et la liste des logiciels vers une clé USB ou un disque, puis restaure le tout sur un nouveau PC. Mode intervention client en console rapide avec rapport.",
             Features = new[]
             {
                 "Bureau, Documents, Images, Vidéos, Musique…",
-                "Favoris Chrome / Edge / Firefox et profils Wi-Fi",
-                "Réinstallation des logiciels via Winget"
+                "Profils Firefox / Thunderbird, favoris Chrome / Edge, export guidé des mots de passe",
+                "Wi-Fi, clé Windows, imprimantes, réinstallation Winget et rapport d'intervention"
             },
             Category = "DISQUE",
             SubHeading = "Sauvegarde et migration",
             Icon = "📦",
             Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.ProfileMigrationDialog(log, ct)),
-            Tags = new[] { "sauvegarde", "backup", "migration", "transfert", "nouveau pc", "clé usb", "profil", "documents", "favoris", "wifi", "restaurer" }
+            Tags = new[] { "sauvegarde", "backup", "migration", "transfert", "nouveau pc", "clé usb", "profil", "documents", "favoris", "wifi", "restaurer", "client", "intervention", "formatage", "changement de pc", "robocopy", "thunderbird", "firefox", "mots de passe", "imprimantes" }
         });
     }
 

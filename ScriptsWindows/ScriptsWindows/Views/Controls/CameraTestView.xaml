@@ -1,0 +1,53 @@
+<UserControl x:Class="ScriptsWindows.Views.Controls.CameraTestView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BgDeep}"
+             Foreground="{DynamicResource TextPrimary}"
+             FontFamily="{StaticResource FontMain}">
+    <StackPanel Margin="24">
+        <DockPanel Margin="0,0,0,16">
+            <Border Width="40" Height="40" CornerRadius="8" Background="{DynamicResource AccentDim}" Margin="0,0,14,0" VerticalAlignment="Top">
+                <TextBlock Text="&#xE714;" FontFamily="{StaticResource FontIcon}" FontSize="18" Foreground="{DynamicResource AccentText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Test de la webcam" FontFamily="{StaticResource FontDisplay}" FontSize="19" FontWeight="SemiBold"/>
+                <TextBlock Text="Vérifie que la webcam est reconnue et autorisée, puis ouvre l'application Caméra de Windows pour voir l'image."
+                           Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+        </DockPanel>
+
+        <Border x:Name="PanelCamDenied" Background="{DynamicResource WarningBg}" BorderBrush="{DynamicResource Warning}" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,12" Visibility="Collapsed">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Ouvrir le réglage" Style="{StaticResource ActionButton}" Margin="10,0,0,0" VerticalAlignment="Center" Click="BtnPrivacy_Click"/>
+                <TextBlock Text="Windows bloque l'accès à la caméra (Paramètres > Confidentialité > Caméra) : l'image restera noire ou l'application affichera une erreur."
+                           Foreground="{DynamicResource WarningText}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+
+        <Border Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="16,12" Margin="0,0,0,12">
+            <StackPanel>
+                <TextBlock Text="CAMÉRAS DÉTECTÉES" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,10"/>
+                <StackPanel x:Name="PanelCameras">
+                    <TextBlock Text="Recherche des caméras…" Foreground="{DynamicResource TextSecondary}" FontSize="12.5"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <WrapPanel>
+            <Button x:Name="BtnOpenCamera" Style="{StaticResource PrimaryActionButton}" Margin="0,0,8,8" Click="BtnOpenCamera_Click">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE714;" FontFamily="{StaticResource FontIcon}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Ouvrir l'application Caméra" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Button Style="{StaticResource ActionButton}" Margin="0,0,8,8" Click="BtnRefresh_Click">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE72C;" FontFamily="{StaticResource FontIcon}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Actualiser" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+        </WrapPanel>
+        <TextBlock Foreground="{DynamicResource TextMuted}" FontSize="11.5" TextWrapping="Wrap" Margin="0,4,0,0"
+                   Text="Sur un portable, certaines webcams ont un cache physique ou une touche de coupure (souvent sur une touche F) : vérifiez-les si l'image reste noire."/>
+    </StackPanel>
+</UserControl>

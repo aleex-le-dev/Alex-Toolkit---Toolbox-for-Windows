@@ -575,6 +575,17 @@ Write-Output '[OK] Visionneuse de photos Windows activée'
         File.WriteAllBytes(path, ReadEmbeddedScript(resourceName));
     }
 
+    /// <summary>
+    /// Installe (ou remet à jour) un script embarqué dans le dossier protégé et renvoie son chemin.
+    /// Utilisé par les outils qui lancent un script autonome en console (ex. intervention client).
+    /// </summary>
+    public static string InstallSharedScript(string resourceName)
+    {
+        string path = Path.Combine(ToolsDir, resourceName);
+        InstallToolScript(path, resourceName);
+        return path;
+    }
+
     /// <summary>Supprime les fichiers indiqués, puis le dossier s'il est vide.</summary>
     private static void RemoveToolFiles(params string[] patterns)
     {

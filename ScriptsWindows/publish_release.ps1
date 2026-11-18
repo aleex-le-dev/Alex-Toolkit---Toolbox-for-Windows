@@ -1,6 +1,9 @@
 ﻿# Publie l'exe compilé comme Release GitHub (tag vX.Y.Z) à partir de la version du .csproj.
 # Lancé par publish_release.bat à la racine du projet.
-$ErrorActionPreference = 'Stop'
+# 'Continue' et non 'Stop' : sous PowerShell 5.1, avec 'Stop', le moindre message d'un programme sur
+# stderr (gh « You are not logged into any GitHub hosts », gh auth login, gh release view d'une Release
+# absente) devient une erreur fatale. Le résultat de chaque commande est vérifié par $LASTEXITCODE.
+$ErrorActionPreference = 'Continue'
 $root   = Split-Path -Parent $PSScriptRoot
 $csproj = Join-Path $PSScriptRoot 'ScriptsWindows\ScriptsWindows.csproj'
 Set-Location $root
@@ -34,9 +37,53 @@ if (-not $gh) {
 # 3. Connexion au compte GitHub (une seule fois, ouvre le navigateur)
 & $gh auth status *> $null
 if ($LASTEXITCODE -ne 0) {
-    Step "Connexion à GitHub (une seule fois) : suivez les instructions, le navigateur va s'ouvrir"
-    & $gh auth login --hostname github.com --git-protocol https --web
-    if ($LASTEXITCODE -ne 0) { Fail "Connexion à GitHub annulée ou échouée." }
+    Step "Connexion à GitHub (une seule fois)"
+    # gh n'existe qu'en anglais. Lancé sans console (entrées/sorties redirigées), il ne pose aucune
+    # question (« Authenticate Git…? », « Press Enter… ») : il donne le code et l'adresse, puis attend la
+    # validation. Ses messages sont lus ici et réaffichés en français.
+    $psi = New-Object System.Diagnostics.ProcessStartInfo $gh
+    $psi.Arguments = 'auth login --hostname github.com --git-protocol https --web'
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+    $psi.RedirectStandardInput = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $login = [System.Diagnostics.Process]::Start($psi)
+    $login.StandardInput.Close()
+    $outTask = $login.StandardOutput.ReadToEndAsync()
+    $ghLines = New-Object System.Collections.Generic.List[string]
+    $codeShown = $false
+    while ($null -ne ($line = $login.StandardError.ReadLine())) {
+        $ghLines.Add($line)
+        if (-not $codeShown -and $line -match '\b([A-Z0-9]{4}-[A-Z0-9]{4})\b') {
+            $code = $Matches[1]
+            $codeShown = $true
+            try { Set-Clipboard -Value $code } catch { }
+            Write-Host ""
+            Write-Host "  Votre code de connexion :  $code" -ForegroundColor Green
+            Write-Host "  (déjà copié : faites simplement Ctrl+V dans la page)" -ForegroundColor DarkGray
+            Write-Host ""
+            Write-Host "  1. Dans la page GitHub qui s'ouvre (https://github.com/login/device),"
+            Write-Host "     collez le code puis cliquez sur « Continue »."
+            Write-Host "  2. Cliquez ensuite sur « Authorize GitHub CLI »."
+            Write-Host "  3. Revenez ici : la publication continue toute seule (le code expire après 15 minutes)."
+            Write-Host ""
+            Write-Host "  En attente de votre validation sur GitHub..." -ForegroundColor Yellow
+            try { Start-Process 'https://github.com/login/device' } catch { }
+        } elseif ($line -match 'Logged in as (\S+)') {
+            Write-Host "  [OK] Connecté à GitHub avec le compte $($Matches[1])." -ForegroundColor Green
+        }
+    }
+    $login.WaitForExit()
+    [void]$outTask.Wait(2000)
+    if ($login.ExitCode -ne 0) {
+        Write-Host "`n  Message de GitHub CLI (en anglais) :" -ForegroundColor DarkGray
+        $ghLines | Select-Object -Last 3 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+        Fail "Connexion à GitHub annulée, refusée ou expirée. Relancez publish_release.bat."
+    }
+    # Équivalent de la question « Authenticate Git with your GitHub credentials? » : git push utilisera ce compte.
+    & $gh auth setup-git --hostname github.com *> $null
+    if ($LASTEXITCODE -eq 0) { Write-Host "  [OK] git utilisera ce compte pour envoyer le code sur GitHub." -ForegroundColor Green }
 }
 
 # 4. Le code doit être poussé : la Release pointe sur origin/main

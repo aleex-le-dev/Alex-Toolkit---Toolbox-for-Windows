@@ -22,7 +22,7 @@ by AleexLeDev – diagnostiquez, réparez, optimisez et sécurisez Windows 10 & 
 * **Mots de passe & licences** – mots de passe Wi-Fi enregistrés, clé de licence Windows d'origine (BIOS), historique récent des navigateurs, recherche de fichiers sensibles par nom (≈ 200 mots-clés : banque, identité, santé, contrats, crypto…), scans d'images et contenu (mots de passe en clair, IBAN, cartes, n° de sécurité sociale, clés privées et d'API, toujours masqués).
 * **Internet & réseau** – centre de contrôle réseau, changement de DNS en un clic, grand reset réseau en 7 étapes (TCP/IP, Winsock, DNS, ARP…), scanner Wi-Fi des réseaux voisins, rapport graphique des déconnexions, scanner des appareils de la box, liste des applications connectées et **benchmark DNS réel** (Cloudflare, Google, Quad9, OpenDNS).
 * **Performances & gaming** – bascule normal / performances maximales, optimiseur de latence (HAGS, désactivation de Nagle, priorité CPU aux jeux), **banc d'essai visuel** (jauge de la note globale, notes par composant, mesures réelles en Mo/s et Go/s, comparatif avec des PC types ou une évaluation précédente, historique) et rapport énergétique de la batterie.
-* **Disques & migration** – gestion des disques, Diskpart, optimisation/TRIM, BitLocker, et **sauvegarde / transfert de profil** vers un nouveau PC (fichiers personnels, favoris Chrome / Edge / Firefox, réseaux Wi-Fi, liste des logiciels réinstallable via Winget).
+* **Disques & migration** – gestion des disques, Diskpart, optimisation/TRIM, BitLocker, et **sauvegarde / transfert de profil** vers un nouveau PC (fichiers personnels, favoris Chrome / Edge / Firefox, réseaux Wi-Fi, liste des logiciels réinstallable via Winget) ; mode **intervention client** (changement de PC ou formatage) : scripts console `Backup-ClientPC.ps1` / `Restore-ClientPC.ps1` (robocopy 16 threads, profils Firefox / Thunderbird, export guidé des mots de passe Chrome / Edge, clé Windows OEM, imprimantes, rapport d'intervention, suppression sécurisée des exports en clair).
 * **Applications & mises à jour** – installation groupée des logiciels du quotidien via Winget (Chrome, VLC, 7-Zip, Sumatra PDF, PowerShell, Office, ArtCraft Launcher…), mise à jour de tous les programmes en un clic, et suppression des applications préinstallées inutiles (bloatware) sans jamais toucher aux composants essentiels.
 * **Personnalisation** – menu contextuel classique Windows 10 / moderne Windows 11, ouverture de CMD ou PowerShell en administrateur depuis le clic droit, boutons Éteindre / Redémarrer sur le Bureau, dossier *God Mode*.
 * **Audit de site web** – note globale A+ à D, checklist de 21 contrôles avant mise en ligne, speedtest (DNS, TLS, TTFB), analyse SEO (aperçu Google, structure H1-H6, mots-clés) et inspection SSL / en-têtes HTTP.
@@ -32,7 +32,7 @@ by AleexLeDev – diagnostiquez, réparez, optimisez et sécurisez Windows 10 & 
 * **Une fenêtre par outil** – chaque outil qui affiche un résultat a sa propre interface (listes filtrables, indicateurs, étapes suivies une à une, exports) ; les autres ouvrent directement l'outil Windows concerné.
 * **Journal d'exécution** – trace de tout ce qui a été lancé (résultats, erreurs, sortie des commandes PowerShell / CMD avec code couleur), ouvert à la demande via le bouton **Journal** (un point signale du nouveau contenu) et automatiquement en cas d'erreur. Redimensionnable, zoom avec *Ctrl + molette*, barres de progression (SFC, DISM, winget) sur une seule ligne.
 * **Un outil à la fois** – pendant l'exécution, les boutons des autres outils sont grisés.
-* **Recherche instantanée** parmi les 48 outils (titre, description, mots-clés), **favoris** persistants et barre latérale qui se replie automatiquement.
+* **Recherche instantanée** parmi les 47 outils, en tapant une phrase (« réparer internet », « pixel mort »…) : sans accents ni majuscules, seuls les outils les plus pertinents s'affichent, **favoris** persistants et barre latérale qui se replie automatiquement.
 * **Interface sobre et cohérente** – palette neutre avec une seule couleur d'accent, icônes Windows (Segoe Fluent Icons) et **2 thèmes** *Sombre* (par défaut) et *Clair*, appliqués à toutes les fenêtres et mémorisés d'une session à l'autre.
 * **Mises à jour intégrées** – notification discrète lorsqu'une nouvelle version est publiée sur GitHub, téléchargement et remplacement automatiques.
 
@@ -40,7 +40,7 @@ by AleexLeDev – diagnostiquez, réparez, optimisez et sécurisez Windows 10 & 
 
 ## Catalogue des outils
 
-13 catégories, 48 outils. Chaque outil est enregistré dans [`Core/ToolRegistry.cs`](ScriptsWindows/ScriptsWindows/Core/ToolRegistry.cs) ; l'arborescence complète (avec les commandes associées) peut être prévisualisée et copiée depuis la page **Paramètres** de l'application.
+12 catégories, 47 outils (certains regroupent plusieurs outils dans des onglets). Chaque outil est enregistré dans [`Core/ToolRegistry.cs`](ScriptsWindows/ScriptsWindows/Core/ToolRegistry.cs) ; l'arborescence complète (avec les commandes associées) peut être prévisualisée et copiée depuis la page **Paramètres** de l'application.
 
 | Catégorie | Sous-catégorie | Outils |
 |---|---|---|
@@ -50,17 +50,17 @@ by AleexLeDev – diagnostiquez, réparez, optimisez et sécurisez Windows 10 & 
 | | Pannes et pilotes | Écrans bleus et périphériques en erreur |
 | 🖥️ **Performances & énergie** | Gestion de l'alimentation et vitesse | Changer la vitesse du PC (Normal / Rapide) · Optimiseur de latence et Mode Gaming Ultime |
 | | Banc d'essai et performances | Tester la puissance globale de mon PC (WinSAT) · Détecter ce qui vide la batterie |
+| | Tests des périphériques | Tester l'écran, le clavier, le son et la webcam (onglets : pixels morts en plein écran, clavier touche par touche et souris, bip gauche / droite et micro, webcam) |
 | 🔧 **Dépannage & réparation** | Réparation du système et des disques | Réparer les fichiers système (SFC & DISM) · Réparer les erreurs de disque (CHKDSK) |
 | | Dépannage de l'imprimante et des services | Dépannage des imprimantes (déblocage en 1 clic + script Bureau) · Gérer et redémarrer les services Windows |
 | | Boutique d'applications et affichage | Réparer le Microsoft Store et les icônes blanches |
 | | Sauvegardes et points de retour | Créer ou restaurer un point de retour · Sauvegarder les pilotes |
-| 🧹 **Nettoyage & espace disque** | Nettoyage système et disque | Grand nettoyage du PC et des fichiers inutiles |
+| 🧹 **Nettoyage & espace disque** | Nettoyage système et disque | Grand nettoyage du PC et des fichiers inutiles · Supprimer les anciennes versions des pilotes |
 | 🔑 **Mots de passe & licences** | Mots de passe et Wi-Fi | Retrouver mes mots de passe Wi-Fi · Consulter l'historique de mes navigateurs |
 | | Licences et documents confidentiels | Retrouver ma clé Windows originale · Rechercher mes documents confidentiels |
-| 🌐 **Internet & réseau** | Dépannage et amélioration de la connexion | Centre de contrôle Internet & Réseau · Benchmark DNS · Réparer la connexion (Grand Reset) |
-| | Diagnostic et analyse du Wi-Fi | Détecteur des réseaux Wi-Fi voisins · Bilan des déconnexions Wi-Fi |
-| | Appareils branchés et connexions actives | Voir les appareils connectés sur ma box · Voir les applications connectées à Internet |
-| 💽 **Disques et stockage** | Organisation et gestion des disques | Gestionnaire de disques · Diskpart |
+| 🌐 **Internet & réseau** | Connexion Internet & Wi-Fi | Centre Internet & Connexion (onglets : diagnostic et DNS, benchmark DNS, Grand Reset) · Wi-Fi (onglets : réseaux voisins, déconnexions) |
+| | Appareils & analyse web | Appareils & Connexions (onglets : appareils de la box, applications connectées) · Centre d'audit & analyseur de site web |
+| 💽 **Disques et stockage** | Organisation et gestion des disques | Gestionnaire de disques · **Vitesse des clés USB et disques** (mesure sans cache, comparatif de tous vos supports) · Diskpart |
 | | Santé et sécurité de vos fichiers | Optimiser et accélérer les disques · BitLocker |
 | | Sauvegarde et migration | Sauvegarder et transférer un profil utilisateur |
 | 📦 **Installer vos logiciels** | Installation et déploiement rapide | Installer vos applications indispensables |
@@ -73,9 +73,8 @@ by AleexLeDev – diagnostiquez, réparez, optimisez et sécurisez Windows 10 & 
 | | Comptes et accès | Gérer les comptes utilisateurs |
 | 🎨 **Personnalisation de Windows** | Options et réglages système | Dossier Tous les réglages (God Mode) |
 | | Raccourcis et ergonomie du Bureau | Boutons Éteindre et Redémarrer sur le Bureau |
-| | Menu contextuel & clic droit | Menu contextuel (classique / moderne, CMD & PowerShell admin) |
+| | Menu contextuel & clic droit | Menu contextuel (classique / moderne, CMD & PowerShell admin aussi sur les fichiers, Forcer la suppression) |
 | ⚡ **Démarrage & récupération** | Console interactive de démarrage | Centre de démarrage et récupération |
-| ✨ **Nouveautés & innovations** | Audit web, speedtest & SEO | Centre d'audit & analyseur de site web |
 
 ---
 
@@ -195,7 +194,7 @@ Alex-Toolkit---Toolbox-for-Windows/
         ├── Assets/Styles/            ← Theme.xaml (jetons de couleur, typo, rayons), Controls.xaml (boutons, navigation, défilement)
         ├── Models/                   ← ScriptTool, ToolCategory, UpdateModels
         ├── Core/
-        │   ├── ToolRegistry.cs              ← Catalogue des 48 outils + CommandMap
+        │   ├── ToolRegistry.cs              ← Catalogue des 47 outils + CommandMap
         │   ├── PowerShellRunner.cs          ← Exécution PowerShell asynchrone (UTF-8, annulation)
         │   ├── CommandRunner.cs             ← Exécution CMD / winget / netsh… avec sortie live
         │   ├── ScriptExecutionCoordinator.cs← Un seul script à la fois, verrouillage et interruption

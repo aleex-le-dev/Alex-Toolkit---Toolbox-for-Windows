@@ -1,0 +1,57 @@
+<UserControl x:Class="ScriptsWindows.Views.Controls.KeyboardTestView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource BgDeep}"
+             Foreground="{DynamicResource TextPrimary}"
+             FontFamily="{StaticResource FontMain}">
+    <Grid Margin="24,20,24,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <DockPanel Margin="0,0,0,12">
+            <Button DockPanel.Dock="Right" x:Name="BtnReset" Style="{StaticResource ActionButton}" VerticalAlignment="Center" Click="BtnReset_Click">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE72C;" FontFamily="{StaticResource FontIcon}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Recommencer" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+            <Border Width="40" Height="40" CornerRadius="8" Background="{DynamicResource AccentDim}" Margin="0,0,14,0" VerticalAlignment="Top">
+                <TextBlock Text="&#xE765;" FontFamily="{StaticResource FontIcon}" FontSize="18" Foreground="{DynamicResource AccentText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
+                <TextBlock Text="Test du clavier et de la souris" FontFamily="{StaticResource FontDisplay}" FontSize="19" FontWeight="SemiBold"/>
+                <TextBlock Text="Appuyez sur chaque touche : elle s'allume pendant l'appui puis reste verte. Une touche qui ne s'allume pas est défectueuse."
+                           Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Clavier (mis à l'échelle de la fenêtre) -->
+        <Border Grid.Row="1" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="14" VerticalAlignment="Top">
+            <Viewbox Stretch="Uniform" VerticalAlignment="Top">
+                <Canvas x:Name="KeyCanvas"/>
+            </Viewbox>
+        </Border>
+
+        <!-- Bilan -->
+        <DockPanel Grid.Row="2" Margin="2,10,2,0">
+            <TextBlock x:Name="TxtCount" DockPanel.Dock="Left" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center"/>
+            <TextBlock x:Name="TxtLast" Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="16,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+        </DockPanel>
+
+        <!-- Souris -->
+        <Border Grid.Row="3" x:Name="MouseZone" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="16,12" Margin="0,12,0,0"
+                Cursor="Hand" MouseDown="MouseZone_MouseDown" MouseWheel="MouseZone_MouseWheel" PreviewMouseRightButtonUp="MouseZone_RightUp">
+            <StackPanel>
+                <TextBlock Text="SOURIS ET PAVÉ TACTILE : cliquez dans ce cadre avec chaque bouton, faites tourner la molette, double-cliquez"
+                           FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,10" TextWrapping="Wrap"/>
+                <WrapPanel x:Name="PanelMouse"/>
+                <TextBlock Text="La touche Windows ouvre aussi le menu Démarrer. La touche Fn n'est pas visible par Windows : testez-la avec ses combinaisons (luminosité, son…). Sans pavé numérique, ignorez cette partie du schéma ; avec Verr. num désactivé, ses touches s'allument quand même."
+                           FontSize="11" Foreground="{DynamicResource TextMuted}" Margin="0,8,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

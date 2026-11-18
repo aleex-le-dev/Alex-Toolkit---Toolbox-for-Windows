@@ -142,33 +142,272 @@ public static class ProfileMigrationService
 
     private static string Q(string s) => "'" + s.Replace("'", "''") + "'";
 
-    /// <summary>Copie robocopy silencieuse ; restore=true : n'écrase pas les fichiers plus récents de la destination.</summary>
-    private static Task Robocopy(string src, string dst, bool restore, Action<string> log, CancellationToken ct)
-        => PowerShellRunner.RunAsync($@"
-$src = {Q(src)}; $dst = {Q(dst)}
-New-Item -ItemType Directory -Force -Path $dst | Out-Null
-& robocopy $src $dst /E /R:1 /W:1 /XJ /MT:8 /NFL /NDL /NJH /NJS /NP /XF desktop.ini thumbs.db {(restore ? "/XO" : "")} | Out-Null
-$code = $LASTEXITCODE
-$n = @(Get-ChildItem $dst -Recurse -File -Force -ErrorAction SilentlyContinue).Count
-if ($code -lt 8) {{ Write-Output ""[OK] $(Split-Path $src -Leaf) → $dst ($n fichiers)"" }}
-else {{ Write-Output ""[ERR] Copie incomplète de $src (code robocopy $code : fichiers verrouillés ou accès refusé)"" }}
-", log, ct);
+    /// <summary>Avancement d'une sauvegarde / restauration (affiché par la fenêtre).</summary>
+    /// <param name="ItemTotal">0 pour un élément sans volume (Wi-Fi, logiciels, favoris) : avancement indéterminé.</param>
+    public record CopyProgress(string Item, int Index, int Count,
+                               long ItemDone, long ItemTotal, int FilesDone, int FilesTotal,
+                               long OverallDone, long OverallTotal, double BytesPerSecond);
 
-    public static async Task<string> BackupAsync(IEnumerable<MigrationItem> items, string destinationRoot, Action<string> log, CancellationToken ct)
+    /// <summary>
+    /// Dossiers techniques régénérables, ignorés par défaut à la sauvegarde : des centaines de milliers de petits
+    /// fichiers (très lents sur une clé USB) recréés par « npm install » / Python. Les .git (historique) restent copiés.
+    /// </summary>
+    public static readonly string[] RegenerableDirs = { "node_modules", "__pycache__" };
+
+    /// <summary>Taille et nombre de fichiers d'un dossier (jonctions ignorées, comme robocopy /XJ ; dossiers exclus par nom, comme /XD).</summary>
+    public static (long Bytes, int Files) FolderStats(string path, IReadOnlyCollection<string>? excludeDirs = null)
+    {
+        long size = 0; int files = 0;
+        if (string.IsNullOrEmpty(path) || !Directory.Exists(path)) return (0, 0);
+        var stack = new Stack<DirectoryInfo>();
+        stack.Push(new DirectoryInfo(path));
+        while (stack.Count > 0)
+        {
+            var dir = stack.Pop();
+            try
+            {
+                foreach (var f in dir.EnumerateFiles()) { try { size += f.Length; files++; } catch { } }
+                foreach (var d in dir.EnumerateDirectories())
+                {
+                    if ((d.Attributes & FileAttributes.ReparsePoint) != 0) continue;
+                    if (excludeDirs != null && excludeDirs.Contains(d.Name, StringComparer.OrdinalIgnoreCase)) continue;
+                    stack.Push(d);
+                }
+            }
+            catch { /* dossier inaccessible */ }
+        }
+        return (size, files);
+    }
+
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    private struct IoCounters { public ulong ReadOps, WriteOps, OtherOps, ReadBytes, WriteBytes, OtherBytes; }
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GetProcessIoCounters(IntPtr process, out IoCounters counters);
+
+    /// <summary>Octets écrits par un processus depuis son démarrage (0 si indisponible).</summary>
+    private static long ProcessWriteBytes(System.Diagnostics.Process p)
+    {
+        try { return !p.HasExited && GetProcessIoCounters(p.Handle, out var c) ? (long)c.WriteBytes : 0; }
+        catch { return 0; }
+    }
+
+    // « \t  Nouveau fichier\t\t  307200\tC:\… » : une ligne par fichier traité (/V : ignorés compris ; /BYTES : taille en octets).
+    // Les fichiers en trop de la destination (« *Fichier SUPPL. », « *EXTRA File ») commencent par « * » : non comptés.
+    private static readonly System.Text.RegularExpressions.Regex RoboFileLine =
+        new(@"^\t([^\t]+)\t+ *(\d+)\t", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    /// <summary>
+    /// Taille à partir de laquelle un fichier est copié par la passe « gros fichiers » (1 seul thread).
+    /// Mesuré sur une clé USB 3.2 (SanDisk, NTFS) : gros fichiers 3,8 Mo/s en 1 thread contre 3,4 Mo/s en /MT:16
+    /// (plusieurs écritures en parallèle se gênent sur la mémoire flash) ; petits fichiers 15 fichiers/s en /MT:16
+    /// contre 9 en 1 thread (le délai par fichier se recouvre). D'où deux passes.
+    /// </summary>
+    private const long BigFileBytes = 8L << 20;
+
+    /// <summary>
+    /// Copie robocopy en deux passes (petits fichiers en /MT:16, puis gros fichiers un par un) avec avancement en
+    /// direct : le journal de robocopy (/UNILOG, une ligne par fichier) est lu pendant la copie, complété par les
+    /// octets réellement écrits. restore=true : /XO, n'écrase pas un fichier plus récent de la destination.
+    /// </summary>
+    private static async Task<long> RobocopyAsync(string src, string dst, bool restore, string label, Action<string> log,
+                                            Action<long, int, long, int, double>? onProgress, CancellationToken ct,
+                                            IReadOnlyCollection<string>? excludeDirs = null)
+    {
+        var (totalBytes, totalFiles) = await Task.Run(() => FolderStats(src, excludeDirs), ct);
+        log($"[i] {label} : {FormatSize(totalBytes)}, {totalFiles} fichiers à traiter");
+        if (excludeDirs is { Count: > 0 }) log($"[i] Dossiers ignorés : {string.Join(", ", excludeDirs)}");
+        Directory.CreateDirectory(dst);
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        long doneBytes = 0; int doneFiles = 0; int nextLog = 10;
+        var errors = new List<string>();
+        long measured = 0, passBase = 0, passLog = 0, ioStart = 0;
+        var history = new Queue<(double t, long bytes)>();
+        System.Diagnostics.Process? proc = null;
+        int code = 0;
+
+        // Volume réellement écrit. Le journal seul retarde : avec /MT, robocopy n'y inscrit un fichier qu'une fois
+        // terminé ET dans l'ordre ; un gros fichier en cours (ISO, vidéo) bloque l'affichage de tous les suivants.
+        // On prend donc le maximum du journal et des octets réellement écrits par le processus robocopy
+        // (compteurs d'E/S Windows). Pas l'espace libre de la destination : robocopy réserve la taille complète
+        // d'un fichier dès qu'il le commence (un ISO de 1,5 Go ferait sauter l'affichage à 100 %).
+        void Report(bool final)
+        {
+            long io = proc == null ? 0 : Math.Max(0, ProcessWriteBytes(proc) - ioStart);
+            // Jamais au-delà du total avant la fin, et jamais en recul.
+            measured = Math.Max(measured, Math.Min(passBase + Math.Max(passLog, io), totalBytes));
+
+            // Débit sur les 10 dernières secondes : stable, et suit les changements (petits fichiers / gros fichiers).
+            double now = watch.Elapsed.TotalSeconds;
+            history.Enqueue((now, measured));
+            while (history.Count > 2 && now - history.Peek().t > 10) history.Dequeue();
+            var first = history.Peek();
+            double speed = now - first.t >= 2 ? (measured - first.bytes) / (now - first.t) : 0;
+
+            long shown = final ? Math.Max(measured, totalBytes) : measured;
+            onProgress?.Invoke(shown, final ? Math.Max(doneFiles, totalFiles) : doneFiles, totalBytes, totalFiles, speed);
+            if (!final && totalBytes > 0 && watch.Elapsed.TotalSeconds >= 5)
+            {
+                int pct = (int)Math.Min(99, measured * 100 / totalBytes);
+                if (pct >= nextLog)
+                {
+                    log($"[i] {label} : {pct} % ({FormatSize(measured)} / {FormatSize(totalBytes)}, {doneFiles} / {totalFiles} fichiers terminés, {FormatSize((long)speed)}/s)");
+                    while (nextLog <= pct) nextLog += 10;
+                }
+            }
+        }
+
+        var passes = new (string[] Args, long Min, long Max)[]
+        {
+            (new[] { "/MT:16", $"/MAX:{BigFileBytes - 1}" }, 0, BigFileBytes - 1),   // petits fichiers en parallèle
+            (new[] { $"/MIN:{BigFileBytes}" }, BigFileBytes, long.MaxValue),          // gros fichiers un par un
+        };
+        foreach (var pass in passes)
+        {
+            string rcLog = Path.Combine(Path.GetTempPath(), $"alextoolkit_robocopy_{Guid.NewGuid():N}.log");
+            var psi = new System.Diagnostics.ProcessStartInfo("robocopy.exe")
+            {
+                UseShellExecute = false, CreateNoWindow = true,
+                RedirectStandardOutput = true   // vide avec /UNILOG ; évite toute écriture dans la console de l'appli
+            };
+            foreach (var a in new[] { src, dst, "/E", "/R:1", "/W:1", "/XJ", "/NDL", "/NP", "/V", "/BYTES", "/NJH",
+                                      "/XF", "desktop.ini", "thumbs.db", $"/UNILOG:{rcLog}" })
+                psi.ArgumentList.Add(a);
+            foreach (var a in pass.Args) psi.ArgumentList.Add(a);
+            if (restore) psi.ArgumentList.Add("/XO");
+            if (excludeDirs is { Count: > 0 })
+            {
+                psi.ArgumentList.Add("/XD");
+                foreach (var d in excludeDirs) psi.ArgumentList.Add(d);
+            }
+
+            passLog = 0;
+            var pending = new System.Text.StringBuilder();
+            FileStream? fs = null; StreamReader? reader = null;
+            var buffer = new char[32768];
+
+            // Une ligne par fichier vu. Les fichiers écartés par la taille (/MIN, /MAX) sont aussi listés
+            // (« grand » / « petit », selon la langue) : on les reconnaît à leur taille, pas à leur libellé.
+            void ReadNew()
+            {
+                if (reader == null)
+                {
+                    if (!File.Exists(rcLog)) return;
+                    try
+                    {
+                        fs = new FileStream(rcLog, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                        reader = new StreamReader(fs, System.Text.Encoding.Unicode, detectEncodingFromByteOrderMarks: true);
+                    }
+                    catch (IOException) { return; }
+                }
+                int n;
+                while ((n = reader.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    pending.Append(buffer, 0, n);
+                    string text = pending.ToString();
+                    int last = text.LastIndexOf('\n');
+                    if (last < 0) continue;
+                    pending.Clear().Append(text, last + 1, text.Length - last - 1);
+                    foreach (var raw in text.Substring(0, last).Split('\n'))
+                    {
+                        string line = raw.TrimEnd('\r');
+                        var m = RoboFileLine.Match(line);
+                        if (m.Success && !m.Groups[1].Value.TrimStart().StartsWith('*'))
+                        {
+                            long size = long.Parse(m.Groups[2].Value);
+                            if (size < pass.Min || size > pass.Max) continue;   // traité par l'autre passe
+                            doneBytes += size; passLog += size;
+                            doneFiles++;
+                        }
+                        else if (line.Contains("ERREUR", StringComparison.OrdinalIgnoreCase) || line.Contains("ERROR", StringComparison.Ordinal))
+                        {
+                            if (errors.Count < 5) errors.Add(line.Trim());
+                        }
+                    }
+                }
+            }
+
+            proc = System.Diagnostics.Process.Start(psi)!;
+            _ = proc.StandardOutput.ReadToEndAsync();
+            ioStart = ProcessWriteBytes(proc);
+            try
+            {
+                while (!proc.HasExited)
+                {
+                    if (ct.IsCancellationRequested)
+                    {
+                        try { proc.Kill(true); } catch { }
+                        ct.ThrowIfCancellationRequested();
+                    }
+                    await Task.Delay(400, CancellationToken.None);
+                    ReadNew();
+                    Report(false);
+                }
+                proc.WaitForExit();
+                ReadNew();
+                int c = proc.ExitCode;
+                // Codes robocopy : < 8 = bits de réussite cumulables ; >= 8 = échec (on garde le plus grave).
+                code = (c >= 8 || code >= 8) ? Math.Max(code, c) : (code | c);
+            }
+            finally
+            {
+                reader?.Dispose(); fs?.Dispose();
+                proc.Dispose();
+                proc = null;
+                try { File.Delete(rcLog); } catch { }
+            }
+            passBase += passLog; passLog = 0;   // volume exact de la passe (tous ses fichiers sont maintenant dans le journal)
+        }
+        Report(true);
+
+        string time = watch.Elapsed.ToString(@"mm\:ss");
+        if (code < 8)
+            log($"[OK] {label} → {dst} ({FormatSize(totalBytes)}, {totalFiles} fichiers, {time})");
+        else
+        {
+            log($"[ERR] Copie incomplète de {label} (code robocopy {code} : fichiers verrouillés ou accès refusé)");
+            foreach (var e in errors) log($"      {e}");
+        }
+        return totalBytes;
+    }
+
+    /// <summary>Suivi de l'avancement global (volume de tous les dossiers) pour <see cref="CopyProgress"/>.</summary>
+    private sealed class ProgressTracker(int count, long overallTotal, Action<CopyProgress>? sink)
+    {
+        private long _before;   // volume des éléments terminés
+        public int Index { get; private set; }
+        public string Item { get; private set; } = "";
+
+        public void Start(string item) { Index++; Item = item; sink?.Invoke(new(item, Index, count, 0, 0, 0, 0, _before, overallTotal, 0)); }
+
+        public void Folder(long done, int files, long itemTotal, int filesTotal, double speed) =>
+            sink?.Invoke(new(Item, Index, count, done, itemTotal, files, filesTotal, _before + done, Math.Max(overallTotal, _before + itemTotal), speed));
+
+        public void Done(long bytes) => _before += bytes;
+    }
+
+    public static async Task<string> BackupAsync(IEnumerable<MigrationItem> items, string destinationRoot, Action<string> log, CancellationToken ct,
+                                                 Action<CopyProgress>? progress = null, bool skipRegenerable = true)
     {
         string user = Environment.UserName;
         string root = Path.Combine(destinationRoot, $"Sauvegarde_{user}_{DateTime.Now:yyyy-MM-dd_HH-mm}");
         Directory.CreateDirectory(root);
         var done = new List<string>();
+        var selected = items.Where(i => i.IsSelected && i.IsAvailable).ToList();
+        var tracker = new ProgressTracker(selected.Count,
+            selected.Where(i => i.Kind == MigrationKind.Folder).Sum(i => Math.Max(0, i.SizeBytes)), progress);
 
-        foreach (var item in items.Where(i => i.IsSelected && i.IsAvailable))
+        foreach (var item in selected)
         {
             ct.ThrowIfCancellationRequested();
-            log($"\n[i] ── {item.Label} ──");
+            log($"\n[i] ── {item.Label} ({tracker.Index + 1}/{selected.Count}) ──");
+            tracker.Start(item.Label);
             switch (item.Kind)
             {
                 case MigrationKind.Folder:
-                    await Robocopy(item.SourcePath, Path.Combine(root, "Fichiers", item.Key), false, log, ct);
+                    tracker.Done(await RobocopyAsync(item.SourcePath, Path.Combine(root, "Fichiers", item.Key), false, item.Label, log, tracker.Folder, ct,
+                                                     skipRegenerable ? RegenerableDirs : null));
                     break;
 
                 case MigrationKind.Bookmarks:
@@ -186,7 +425,7 @@ else {{ Write-Output ""[ERR] Copie incomplète de $src (code robocopy $code : fi
                     CopyBrowser(EdgeUserData, "Edge");
                     if (Directory.Exists(FirefoxProfiles))
                         foreach (var backups in Directory.GetDirectories(FirefoxProfiles).Select(p => Path.Combine(p, "bookmarkbackups")).Where(Directory.Exists))
-                            await Robocopy(backups, Path.Combine(nav, "Firefox", Path.GetFileName(Path.GetDirectoryName(backups)!)), false, log, ct);
+                            await RobocopyAsync(backups, Path.Combine(nav, "Firefox", Path.GetFileName(Path.GetDirectoryName(backups)!)), false, "Favoris Firefox", log, null, ct);
                     break;
 
                 case MigrationKind.Wifi:
@@ -254,22 +493,37 @@ Write-Output ""[OK] $(@($list).Count) logiciels listés ($w)""
         catch { return null; }
     }
 
-    public static async Task RestoreAsync(IEnumerable<MigrationItem> items, string backupRoot, bool reinstallApps, Action<string> log, CancellationToken ct)
+    public static async Task RestoreAsync(IEnumerable<MigrationItem> items, string backupRoot, bool reinstallApps, Action<string> log, CancellationToken ct,
+                                          Action<CopyProgress>? progress = null)
     {
-        foreach (var item in items.Where(i => i.IsSelected))
+        // Éléments réellement présents dans la sauvegarde (pour « 2/5 » et le volume total à restaurer)
+        var selected = items.Where(i => i.IsSelected && i.Kind switch
+        {
+            MigrationKind.Folder => Directory.Exists(Path.Combine(backupRoot, "Fichiers", i.Key)),
+            MigrationKind.Wifi => Directory.Exists(Path.Combine(backupRoot, "WiFi")),
+            MigrationKind.Apps => reinstallApps && File.Exists(Path.Combine(backupRoot, "Applications", "winget.json")),
+            _ => true
+        }).ToList();
+        log("[i] Calcul du volume à restaurer…");
+        long overall = await Task.Run(() => selected.Where(i => i.Kind == MigrationKind.Folder)
+            .Sum(i => FolderStats(Path.Combine(backupRoot, "Fichiers", i.Key)).Bytes), ct);
+        log($"[i] {FormatSize(overall)} de fichiers à restaurer");
+        var tracker = new ProgressTracker(selected.Count, overall, progress);
+
+        foreach (var item in selected)
         {
             ct.ThrowIfCancellationRequested();
+            tracker.Start(item.Label);
             switch (item.Kind)
             {
                 case MigrationKind.Folder:
                     string src = Path.Combine(backupRoot, "Fichiers", item.Key);
-                    if (!Directory.Exists(src)) continue;
-                    log($"\n[i] ── {item.Label} ──");
-                    await Robocopy(src, item.SourcePath, true, log, ct);
+                    log($"\n[i] ── {item.Label} ({tracker.Index}/{selected.Count}) ──");
+                    tracker.Done(await RobocopyAsync(src, item.SourcePath, true, item.Label, log, tracker.Folder, ct));
                     break;
 
                 case MigrationKind.Bookmarks:
-                    log($"\n[i] ── {item.Label} ──");
+                    log($"\n[i] ── {item.Label} ({tracker.Index}/{selected.Count}) ──");
                     void RestoreBookmarks(string name, string userData, string process)
                     {
                         string fromRoot = Path.Combine(backupRoot, "Navigateurs", name);
@@ -319,5 +573,62 @@ Write-Output ""[OK] $ok profil(s) Wi-Fi importé(s)""
             }
         }
         log("[OK] Restauration terminée.");
+    }
+
+    // ─── Mode intervention client : scripts console autonomes (Backup-ClientPC / Restore-ClientPC) ───
+    // Ils attendent l'opérateur (export des mots de passe, choix de la sauvegarde) : ils tournent dans une
+    // vraie console PowerShell, pas dans le journal de l'appli (sans entrée clavier, Read-Host y est impossible).
+    public const string ClientBackupFolder = "Backups_AlexDepannage";
+
+    public record DriveChoice(char Letter, string Label, bool IsSystem)
+    {
+        public override string ToString() => Label;
+    }
+
+    /// <summary>Lecteurs utilisables pour une sauvegarde client (disques externes et clés USB en premier).</summary>
+    public static List<DriveChoice> GetBackupDrives()
+    {
+        char system = char.ToUpperInvariant(Path.GetPathRoot(Environment.SystemDirectory)![0]);
+        var list = new List<(DriveChoice Choice, int Order)>();
+        foreach (var d in DriveInfo.GetDrives())
+        {
+            try
+            {
+                if (!d.IsReady || d.DriveType is not (DriveType.Removable or DriveType.Fixed or DriveType.Network)) continue;
+                char letter = char.ToUpperInvariant(d.Name[0]);
+                bool isSystem = letter == system;
+                string kind = d.DriveType switch { DriveType.Removable => "amovible", DriveType.Network => "réseau", _ => isSystem ? "disque de Windows" : "disque" };
+                string name = string.IsNullOrWhiteSpace(d.VolumeLabel) ? "" : d.VolumeLabel + " - ";
+                list.Add((new DriveChoice(letter, $"{letter}:  {name}{kind} - {FormatSize(d.AvailableFreeSpace)} libres", isSystem),
+                          isSystem ? 2 : d.DriveType == DriveType.Removable ? 0 : 1));
+            }
+            catch { /* lecteur qui disparaît pendant l'énumération */ }
+        }
+        return list.OrderBy(x => x.Order).ThenBy(x => x.Choice.Letter).Select(x => x.Choice).ToList();
+    }
+
+    /// <summary>Nom de client utilisable comme nom de dossier (même règle que le script).</summary>
+    public static string SanitizeClientName(string name)
+    {
+        var chars = name.Trim().Select(c => "\\/:*?\"<>|".Contains(c) || char.IsControl(c) ? '_' : c).ToArray();
+        return new string(chars).Trim('.', ' ');
+    }
+
+    /// <summary>Installe le script dans %ProgramData%\AlexToolkit puis l'ouvre dans une console PowerShell visible.</summary>
+    public static string LaunchClientScript(bool backup, string? clientName = null, char? drive = null)
+    {
+        string script = PersonalizationService.InstallSharedScript(backup ? "Backup-ClientPC.ps1" : "Restore-ClientPC.ps1");
+        var psi = new System.Diagnostics.ProcessStartInfo(Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"))
+        {
+            UseShellExecute = false,   // nouvelle fenêtre de console (l'appli n'en a pas) ; arguments passés tels quels
+            WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        };
+        // -NoExit : la console reste ouverte pour relire le bilan. Les valeurs sont des arguments séparés
+        // (jamais insérées dans du code) : un nom comme « Projets d'été » ne casse rien.
+        foreach (var a in new[] { "-NoProfile", "-NoExit", "-ExecutionPolicy", "Bypass", "-File", script }) psi.ArgumentList.Add(a);
+        if (backup && !string.IsNullOrWhiteSpace(clientName)) { psi.ArgumentList.Add("-ClientName"); psi.ArgumentList.Add(clientName); }
+        if (backup && drive is char d) { psi.ArgumentList.Add("-DestinationDrive"); psi.ArgumentList.Add(d.ToString()); }
+        using var _ = System.Diagnostics.Process.Start(psi);
+        return script;
     }
 }

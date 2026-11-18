@@ -464,7 +464,7 @@ $nets = @(Get-NetIPConfiguration | Where-Object { $_.IPv4Address } | ForEach-Obj
 
     private void BtnDxdiag_Click(object sender, RoutedEventArgs e)
     {
-        CommandRunner.StartProcess("dxdiag.exe");
+        CommandRunner.StartProcess("dxdiag.exe", "/whql:off");   // /whql:off : pas de question sur la signature des pilotes
         TxtFeedback.Text = "Outil de diagnostic DirectX (DxDiag) ouvert.";
     }
 
