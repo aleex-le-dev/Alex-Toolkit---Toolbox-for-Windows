@@ -23,6 +23,7 @@ public partial class ContextMenuItemsDialog : Window
         {
             // Une nouvelle version de l'application met à jour les entrées et scripts déjà installés.
             PersonalizationService.RefreshForceDeleteScriptIfInstalled();
+            PersonalizationService.RefreshUnlockScriptIfInstalled();
             PersonalizationService.RefreshAdminTerminalEntriesIfInstalled();
             RefreshStatus();
         };
@@ -63,6 +64,44 @@ public partial class ContextMenuItemsDialog : Window
         // 4. Statut Forcer la suppression
         bool isForceDeleteActive = PersonalizationService.IsForceDeleteContextMenuEnabled();
         UpdateToggle(BadgeForceDeleteStatus, TxtForceDeleteStatus, BtnToggleForceDelete, isForceDeleteActive);
+
+        // 5. Statut Débloquer l'accès
+        UpdateToggle(BadgeUnlockStatus, TxtUnlockStatus, BtnToggleUnlock, PersonalizationService.IsUnlockContextMenuEnabled());
+    }
+
+    private void BtnToggleUnlock_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (PersonalizationService.IsUnlockContextMenuEnabled())
+            {
+                bool removed = PersonalizationService.RemoveUnlockContextMenu();
+                TxtStatus.Text = removed ? "« Débloquer l'accès » a été retiré du menu contextuel." : "Retrait incomplet : relancez l'outil en administrateur.";
+                TxtStatus.Foreground = ThemeManager.GetBrush(removed ? "TextSecondary" : "DangerText");
+                _onOutput(removed ? "[INFO] « Débloquer l'accès » retiré du menu contextuel." : "[WARN] Retrait incomplet de « Débloquer l'accès ».");
+            }
+            else
+            {
+                if (AppMessageBox.Show(this,
+                        "Ajouter « Débloquer l'accès (autorisations) » au clic droit des dossiers et des lecteurs ?\n\n" +
+                        "Il reprend la propriété du dossier et de tout son contenu (groupe Administrateurs) et donne le contrôle total " +
+                        "aux Administrateurs et à votre compte : utile pour l'ancien disque d'un client dont Windows refuse l'accès.\n\n" +
+                        "Une confirmation est demandée à chaque utilisation ; les dossiers de ce Windows (Windows, Program Files, profils…) sont refusés.\n\n" +
+                        "Sous Windows 11, l'entrée apparaît dans « Afficher d'autres options » (ou directement avec le menu classique).",
+                        "Débloquer l'accès", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+                PersonalizationService.InstallUnlockContextMenu();
+                TxtStatus.Text = "✓ « Débloquer l'accès » est disponible au clic droit des dossiers et lecteurs.";
+                TxtStatus.Foreground = ThemeManager.GetBrush("SuccessText");
+                _onOutput($"[SUCCÈS] « Débloquer l'accès » ajouté au clic droit (script : {PersonalizationService.UnlockScriptPath}).");
+            }
+            RefreshStatus();
+        }
+        catch (Exception ex)
+        {
+            TxtStatus.Text = $"Erreur : {ex.Message}";
+            TxtStatus.Foreground = ThemeManager.GetBrush("DangerText");
+            _onOutput($"❌ [ERREUR] Débloquer l'accès : {ex.Message}");
+        }
     }
 
     /// <summary>Badge « Actif / Non actif » et bouton Activer / Retirer d'une entrée du clic droit.</summary>

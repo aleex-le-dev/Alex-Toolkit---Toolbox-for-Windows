@@ -73,7 +73,7 @@ by AleexLeDev – diagnostiquez, réparez, optimisez et sécurisez Windows 10 & 
 | | Comptes et accès | Gérer les comptes utilisateurs |
 | 🎨 **Personnalisation de Windows** | Options et réglages système | Dossier Tous les réglages (God Mode) |
 | | Raccourcis et ergonomie du Bureau | Boutons Éteindre et Redémarrer sur le Bureau |
-| | Menu contextuel & clic droit | Menu contextuel (classique / moderne, CMD & PowerShell admin aussi sur les fichiers, Forcer la suppression) |
+| | Menu contextuel & clic droit | Menu contextuel (classique / moderne, CMD & PowerShell admin aussi sur les fichiers, Forcer la suppression, Débloquer l'accès à un dossier ou un ancien disque) |
 | ⚡ **Démarrage & récupération** | Console interactive de démarrage | Centre de démarrage et récupération |
 
 ---

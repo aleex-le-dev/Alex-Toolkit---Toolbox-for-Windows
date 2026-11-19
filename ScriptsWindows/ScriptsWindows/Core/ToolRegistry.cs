@@ -89,7 +89,7 @@ public static class ToolRegistry
         ["disk_diskpart"] = "diskpart.exe",
         ["disk_defrag_gui"] = "dfrgui.exe",
         ["disk_bitlocker"] = "manage-bde.exe -status",
-        ["disk_profile_migration"] = "robocopy.exe /E /XJ en 2 passes (petits fichiers /MT:16, gros fichiers 1 thread) + netsh wlan export/add profile + winget export/import ; intervention client : Backup-ClientPC.ps1 / Restore-ClientPC.ps1",
+        ["disk_profile_migration"] = "robocopy.exe /E /XJ en 2 passes (petits fichiers /MT:16, gros fichiers 1 thread) + netsh wlan export/add profile + winget export/import ; intervention client : Backup-ClientPC.ps1 / Restore-ClientPC.ps1 / Unlock-ClientDrive.ps1 (takeown /R /A + icacls /grant *S-1-5-32-544 /T /C /Q)",
         ["disk_speed_test"] = "Mesure sans cache (FILE_FLAG_NO_BUFFERING + écriture directe) : séquentiel 1 Mo, aléatoire 4 Ko, création de fichiers de 16 Ko ; historique %LocalAppData%\\ScriptsWindows\\drive_speeds.json",
 
         // ─── Applications (2) ───
@@ -110,7 +110,7 @@ public static class ToolRegistry
         // ─── Personnalisation (3) ───
         ["tweak_godmode"] = "explorer.exe \"shell:::{ED7BA470-8E54-465E-825C-99712043E01C}\"",
         ["tweak_power_shortcuts"] = "AlexToolkit.exe (Interface de création des boutons Arrêter et Redémarrer sur le Bureau)",
-        ["tweak_context_menu_items"] = "AlexToolkit.exe (Interface de personnalisation des éléments du menu contextuel : CMD Bureau & Dossiers)",
+        ["tweak_context_menu_items"] = "AlexToolkit.exe (menu contextuel : menu classique, CMD / PowerShell Admin, Forcer la suppression (ForceDelete.ps1), Débloquer l'accès (Unlock-ClientDrive.ps1 : takeown + icacls))",
 
         // ─── Démarrage & Récupération (1) ───
         ["boot_center"] = "AlexToolkit.exe (Console unifiée de démarrage et récupération : sans échec, WinRE, BIOS/UEFI, BCD)",
@@ -898,7 +898,7 @@ public static class ToolRegistry
             SubHeading = "Sauvegarde et migration",
             Icon = "📦",
             Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.ProfileMigrationDialog(log, ct)),
-            Tags = new[] { "sauvegarde", "backup", "migration", "transfert", "nouveau pc", "clé usb", "profil", "documents", "favoris", "wifi", "restaurer", "client", "intervention", "formatage", "changement de pc", "robocopy", "thunderbird", "firefox", "mots de passe", "imprimantes" }
+            Tags = new[] { "sauvegarde", "backup", "migration", "transfert", "nouveau pc", "clé usb", "profil", "documents", "favoris", "wifi", "restaurer", "client", "intervention", "formatage", "changement de pc", "robocopy", "thunderbird", "firefox", "mots de passe", "imprimantes", "ancien disque", "accès refusé", "débloquer", "autorisations", "takeown" }
         });
     }
 
@@ -1137,19 +1137,19 @@ public static class ToolRegistry
         {
             Id = "tweak_context_menu_items",
             Name = "Menu contextuel",
-            Description = "Centre complet de personnalisation du clic droit : basculez entre le menu classique Windows 10 et le menu moderne Windows 11, ajoutez les options pour ouvrir CMD ou PowerShell en Administrateur dans le dossier actif, et « Forcer la suppression » pour supprimer les fichiers et dossiers qui refusent de partir.",
+            Description = "Centre complet de personnalisation du clic droit : basculez entre le menu classique Windows 10 et le menu moderne Windows 11, ajoutez les options pour ouvrir CMD ou PowerShell en Administrateur dans le dossier actif, « Forcer la suppression » pour les fichiers et dossiers qui refusent de partir, et « Débloquer l'accès » pour un dossier ou un ancien disque dont Windows refuse l'ouverture.",
             Features = new[]
             {
                 "Bascule en 1 clic : Grand menu classique Windows 10 ou moderne Windows 11",
                 "Ajout de « Ouvrir CMD (Admin) » et « Ouvrir PowerShell (Admin) » au clic droit",
-                "« Forcer la suppression » : programmes et services qui bloquent fermés, autorisations ignorées",
+                "« Forcer la suppression » et « Débloquer l'accès » (autorisations d'un ancien disque)",
                 "Prise en compte immédiate avec rafraîchissement de l'Explorateur Windows"
             },
             Category = "PERSONNALISATION",
             SubHeading = "Menu contextuel & Clic droit",
             Icon = "🖱️",
             Action = (log, ct) => PersonalizationService.OpenContextMenuItemsDialog(log, ct),
-            Tags = new[] { "menu contextuel", "clic droit", "windows 10", "windows 11", "classique", "cmd", "powershell", "admin", "invite de commandes", "dossier", "images", "bureau", "terminal", "personnaliser", "forcer", "suppression", "supprimer", "effacer", "bloqué", "récalcitrant", "impossible à supprimer", "fichier utilisé", "accès refusé", "autorisation", "propriétaire" }
+            Tags = new[] { "menu contextuel", "clic droit", "windows 10", "windows 11", "classique", "cmd", "powershell", "admin", "invite de commandes", "dossier", "images", "bureau", "terminal", "personnaliser", "forcer", "suppression", "supprimer", "effacer", "bloqué", "récalcitrant", "impossible à supprimer", "fichier utilisé", "accès refusé", "autorisation", "propriétaire", "débloquer", "déverrouiller", "takeown", "icacls", "ancien disque", "vous ne disposez pas", "permissions" }
         });
     }
 

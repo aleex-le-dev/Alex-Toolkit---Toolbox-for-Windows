@@ -172,6 +172,35 @@
                         </DockPanel>
                     </DockPanel>
                 </Border>
+
+                <!-- Carte 5 : Débloquer l'accès (takeown + icacls) -->
+                <Border Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,12,0,0">
+                    <DockPanel LastChildFill="True">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                            <Button x:Name="BtnToggleUnlock" Content="Activer au clic droit"
+                                    Style="{StaticResource SuccessActionButton}" FontSize="12.5"
+                                    Click="BtnToggleUnlock_Click"/>
+                        </StackPanel>
+                        <DockPanel LastChildFill="True">
+                            <Border DockPanel.Dock="Left" Background="{DynamicResource WarningBg}" BorderBrush="{DynamicResource Warning}" BorderThickness="1" CornerRadius="8" Width="48" Height="48" Margin="0,0,14,0" VerticalAlignment="Center">
+                                <TextBlock Text="&#xE785;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="20" Foreground="{DynamicResource WarningText}" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Débloquer l'accès (autorisations)" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
+                                    <Border x:Name="BadgeUnlockStatus" Background="{DynamicResource BgDeep}" BorderBrush="{DynamicResource Border}" BorderThickness="1"
+                                            CornerRadius="4" Padding="7,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock x:Name="TxtUnlockStatus" Text="Non actif" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource TextSecondary}"/>
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock Text="Pour un dossier ou l'ancien disque d'un client qui affiche « Vous ne disposez pas des autorisations requises » : reprend la propriété (takeown) et donne le contrôle total (icacls) à toute l'arborescence."
+                                           FontSize="11.5" Foreground="{DynamicResource TextSecondary}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                <TextBlock Text="Clic droit sur un dossier ou un lecteur. Demande confirmation ; dossiers de ce Windows protégés. Les droits existants sont conservés (ajout seulement)."
+                                           FontSize="11" Foreground="{DynamicResource AccentText}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </DockPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
 

@@ -680,6 +680,69 @@ Write-Output '[OK] Visionneuse de photos Windows activée'
         catch { }
     }
 
+    // ─── « Débloquer l'accès » au clic droit des dossiers et lecteurs (Unlock-ClientDrive.ps1 : takeown + icacls) ───
+    private const string UnlockVerb = "AlexUnlockAccess";
+    private static readonly string[] UnlockShellKeys =
+    {
+        @"SOFTWARE\Classes\Directory\shell\" + UnlockVerb,
+        @"SOFTWARE\Classes\Drive\shell\" + UnlockVerb,
+    };
+    public static string UnlockScriptPath => Path.Combine(ToolsDir, "Unlock-ClientDrive.ps1");
+
+    public static bool IsUnlockContextMenuEnabled()
+    {
+        try
+        {
+            using var k = Registry.LocalMachine.OpenSubKey(UnlockShellKeys[0]);
+            return k != null && File.Exists(UnlockScriptPath);
+        }
+        catch { return false; }
+    }
+
+    /// <summary>
+    /// Installe le script et ajoute « Débloquer l'accès » au clic droit des dossiers et lecteurs. Console visible
+    /// (confirmation, avancement, bilan) ; le script demande lui-même l'élévation. « %V » suivi d'une espace :
+    /// un lecteur « E:\ » ne doit pas finir par \" (guillemet échappé), le script retire l'espace.
+    /// </summary>
+    public static void InstallUnlockContextMenu()
+    {
+        InstallToolScript(UnlockScriptPath, "Unlock-ClientDrive.ps1");
+        string command = $"\"{WindowsPowerShellExe}\" -NoProfile -ExecutionPolicy Bypass -File \"{UnlockScriptPath}\" -TargetPath \"%V \"";
+        string icon = Path.Combine(Environment.SystemDirectory, "imageres.dll") + ",-78";   // bouclier administrateur
+        foreach (var keyPath in UnlockShellKeys)
+        {
+            using var key = Registry.LocalMachine.CreateSubKey(keyPath, writable: true);
+            key.SetValue("", "Débloquer l'accès (autorisations)");
+            key.SetValue("Icon", icon);
+            key.SetValue("HasLUAShield", "");
+            using var cmd = key.CreateSubKey("command", writable: true);
+            cmd.SetValue("", command);
+        }
+    }
+
+    /// <summary>Met à jour le script installé s'il diffère de celui de cette version (administrateur uniquement).</summary>
+    public static void RefreshUnlockScriptIfInstalled()
+    {
+        if (!IsElevated()) return;
+        try
+        {
+            if (!IsUnlockContextMenuEnabled()) return;
+            if (File.ReadAllBytes(UnlockScriptPath).AsSpan().SequenceEqual(ReadEmbeddedScript("Unlock-ClientDrive.ps1"))) return;
+            InstallUnlockContextMenu();
+        }
+        catch { }
+    }
+
+    public static bool RemoveUnlockContextMenu()
+    {
+        foreach (var keyPath in UnlockShellKeys)
+        {
+            try { Registry.LocalMachine.DeleteSubKeyTree(keyPath, throwOnMissingSubKey: false); } catch { }
+        }
+        RemoveToolFiles("Unlock-ClientDrive.ps1");
+        return !IsUnlockContextMenuEnabled();
+    }
+
     /// <summary>Retire l'entrée du clic droit et supprime le script installé (et sa DLL en cache).</summary>
     public static bool RemoveForceDeleteContextMenu()
     {

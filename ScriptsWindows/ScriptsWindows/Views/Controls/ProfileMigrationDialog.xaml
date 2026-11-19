@@ -80,6 +80,8 @@
                         <ComboBox x:Name="CmbDrive" Style="{StaticResource FieldComboBox}" HorizontalAlignment="Stretch" Margin="0,0,0,10"/>
                         <Button x:Name="BtnClientBackup" Content="Sauvegarder le PC client" Style="{StaticResource PrimaryActionButton}" HorizontalAlignment="Stretch" Click="BtnClientBackup_Click"/>
                         <Button x:Name="BtnClientRestore" Content="Restaurer sur ce PC" Style="{StaticResource ActionButton}" HorizontalAlignment="Stretch" Margin="0,8,0,0" Click="BtnClientRestore_Click"/>
+                        <Button x:Name="BtnClientUnlock" Content="Débloquer un ancien disque…" Style="{StaticResource ActionButton}" HorizontalAlignment="Stretch" Margin="0,8,0,0" Click="BtnClientUnlock_Click"
+                                ToolTip="Disque d'un ancien PC branché en USB et « Vous ne disposez pas des autorisations » : reprend la propriété (takeown) et donne le contrôle total (icacls)"/>
                     </StackPanel>
                 </Border>
                 <Border Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="16">

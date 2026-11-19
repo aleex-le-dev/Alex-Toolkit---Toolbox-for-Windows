@@ -51,7 +51,7 @@ public partial class ProfileMigrationDialog : Window
     private void SetRunning(bool running, string status)
     {
         _running = running;
-        BtnBackup.IsEnabled = BtnRestore.IsEnabled = BtnClose.IsEnabled = BtnClientBackup.IsEnabled = BtnClientRestore.IsEnabled = !running;
+        BtnBackup.IsEnabled = BtnRestore.IsEnabled = BtnClose.IsEnabled = BtnClientBackup.IsEnabled = BtnClientRestore.IsEnabled = BtnClientUnlock.IsEnabled = !running;
         BtnCancel.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
         ListItems.IsEnabled = ChkSkipRegenerable.IsEnabled = !running;
         TxtStatus.Text = status;
@@ -221,6 +221,24 @@ public partial class ProfileMigrationDialog : Window
 
     private void BtnClientRestore_Click(object sender, RoutedEventArgs e)
         => LaunchClient(false, null, null, "Restauration : choisissez la sauvegarde dans la console");
+
+    /// <summary>Ancien disque inaccessible (droits NTFS d'un autre compte) : console Unlock-ClientDrive.ps1 sur le dossier choisi.</summary>
+    private void BtnClientUnlock_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFolderDialog { Title = "Dossier ou disque à débloquer (ex. E:\\Users\\Client sur l'ancien disque)" };
+        if (dlg.ShowDialog(this) != true) return;
+        try
+        {
+            ProfileMigrationService.LaunchUnlockScript(dlg.FolderName);
+            TxtStatus.Text = $"Déblocage de {dlg.FolderName} : confirmez dans la console PowerShell qui vient de s'ouvrir.";
+            _onOutput($"[OK] Déblocage de l'accès lancé pour {dlg.FolderName} (console PowerShell)");
+        }
+        catch (Exception ex)
+        {
+            TxtStatus.Text = $"Erreur : {ex.Message}";
+            _onOutput($"❌ [ERREUR] Déblocage de l'accès : {ex.Message}");
+        }
+    }
 
     private void LaunchClient(bool backup, string? client, char? drive, string what)
     {

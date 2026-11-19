@@ -631,4 +631,21 @@ Write-Output ""[OK] $ok profil(s) Wi-Fi importé(s)""
         using var _ = System.Diagnostics.Process.Start(psi);
         return script;
     }
+
+    /// <summary>
+    /// Débloque l'accès à un dossier ou à l'ancien disque d'un client (Unlock-ClientDrive.ps1 : takeown + icacls)
+    /// dans une console visible (confirmation et bilan ; le script attend Entrée avant de se fermer).
+    /// </summary>
+    public static string LaunchUnlockScript(string targetPath)
+    {
+        string script = PersonalizationService.InstallSharedScript("Unlock-ClientDrive.ps1");
+        var psi = new System.Diagnostics.ProcessStartInfo(Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe"))
+        {
+            UseShellExecute = false,
+            WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        };
+        foreach (var a in new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, "-TargetPath", targetPath }) psi.ArgumentList.Add(a);
+        using var _ = System.Diagnostics.Process.Start(psi);
+        return script;
+    }
 }
