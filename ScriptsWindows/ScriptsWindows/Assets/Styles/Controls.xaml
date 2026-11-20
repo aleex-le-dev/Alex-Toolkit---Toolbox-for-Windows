@@ -278,6 +278,13 @@
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
         <Setter Property="Height" Value="34"/>
     </Style>
+    <Style x:Key="FieldPasswordBox" TargetType="PasswordBox" BasedOn="{StaticResource {x:Type PasswordBox}}">
+        <Setter Property="Background" Value="{DynamicResource BgInput}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+        <Setter Property="Height" Value="34"/>
+    </Style>
     <Style x:Key="FieldComboBox" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
         <Setter Property="Background" Value="{DynamicResource BgInput}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource Border}"/>

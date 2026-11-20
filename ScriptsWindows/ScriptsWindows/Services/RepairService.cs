@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using ScriptsWindows.Core;
 
 namespace ScriptsWindows.Services;
@@ -9,27 +9,24 @@ namespace ScriptsWindows.Services;
 /// </summary>
 public class RepairService
 {
-    // SFC /scannow  (res_sfc)
+    // SFC /scannow  (res_sfc) — résultat lu dans CBS.log (voir SystemHealthService)
     public static async Task RunSfc(Action<string> onOutput, CancellationToken ct = default)
     {
-        onOutput("[i] Lancement de SFC /scannow — cette opération peut prendre 5-15 minutes...");
-        await CommandRunner.RunAsync("sfc /scannow", onOutput, ct);
-        onOutput("[OK] Analyse et vérification SFC terminées.");
+        onOutput("[i] SFC /scannow : vérification des fichiers système (5 à 15 minutes)…");
+        var r = await SystemHealthService.RunSfcAsync(_ => { }, _ => { }, ct);
+        onOutput((r.Unrepaired > 0 ? "[!] " : "[OK] ") + "SFC : " + r.Message);
     }
 
-    // Pipeline Curatif Global (DISM + SFC)
+    // Pipeline curatif (DISM RestoreHealth puis SFC) — résultats vérifiés
     public static async Task RunCurativePipeline(Action<string> onOutput, CancellationToken ct = default)
     {
-        onOutput("========================================================");
-        onOutput("  PIPELINE CURATIF GLOBAL : DISM RESTOREHEALTH + SFC");
-        onOutput("========================================================");
-        onOutput("\n[1/2] Étape 1 : Restauration de l'image Windows (DISM /RestoreHealth)...");
-        await CommandRunner.RunAsync("DISM /Online /Cleanup-Image /RestoreHealth", onOutput, ct);
-        onOutput("\n[2/2] Étape 2 : Vérification et réparation d'intégrité (SFC /scannow)...");
-        await CommandRunner.RunAsync("sfc /scannow", onOutput, ct);
-        onOutput("\n[OK] Pipeline curatif global terminé avec succès");
+        onOutput("[i] 1/2 DISM /RestoreHealth : réparation de l'image Windows…");
+        var d = await SystemHealthService.RunDismAsync("RestoreHealth", _ => { }, _ => { }, ct);
+        onOutput((d.ExitCode == 0 && d.Health == ImageHealth.Healthy ? "[OK] " : "[!] ") + "DISM : " + d.Message);
+        onOutput("[i] 2/2 SFC /scannow : vérification des fichiers système…");
+        var s = await SystemHealthService.RunSfcAsync(_ => { }, _ => { }, ct);
+        onOutput((s.Unrepaired > 0 ? "[!] " : "[OK] ") + "SFC : " + s.Message);
     }
-
     // Déblocage Spouleur d'Impression
     public static async Task FixPrintSpooler(Action<string> onOutput, CancellationToken ct = default)
     {
@@ -45,19 +42,9 @@ Write-Output '[OK] File d''attente d''impression purgée'
         onOutput("[OK] Spouleur d'impression débloqué et relancé");
     }
 
-    // Réparation Applications & Microsoft Store
+    // Réparation du Microsoft Store — ciblée (voir ShellRepairService)
     public static async Task RepairWindowsStore(Action<string> onOutput, CancellationToken ct = default)
-    {
-        onOutput("[i] Réinitialisation du cache Microsoft Store (wsreset)...");
-        await CommandRunner.RunAsync("wsreset.exe", onOutput, ct);
-        onOutput("[i] Réenregistrement des packages applicatifs UWP et Microsoft Store...");
-        await PowerShellRunner.RunAsync(@"
-Get-AppXPackage *WindowsStore* -AllUsers | Foreach {Add-AppxPackage -DisableDevelopmentMode -Register ""$($_.InstallLocation)\AppXManifest.xml""}
-Get-AppXPackage -AllUsers | Foreach {Add-AppxPackage -DisableDevelopmentMode -Register ""$($_.InstallLocation)\AppXManifest.xml"" -ErrorAction SilentlyContinue}
-Write-Output '[OK] Réenregistrement des applications UWP et Store terminé'
-", onOutput, ct);
-    }
-
+        => await ShellRepairService.RepairStoreAsync(s => onOutput($"[i] {s}"), onOutput, ct);
     // Réparation réseau & DNS  (res_network_dns)
     public static async Task RepairNetworkDns(Action<string> onOutput, CancellationToken ct = default)
     {
@@ -89,14 +76,13 @@ Write-Output '[OK] Réenregistrement des applications UWP et Store terminé'
         await CommandRunner.RunAsync("DISM /Online /Cleanup-Image /RestoreHealth", onOutput, ct);
     }
 
-    // CHKDSK  (res_chkdsk)
+    // CHKDSK  (res_chkdsk) — réponse « Oui » traduite (O sur un Windows français)
     public static async Task RunChkdsk(string drive, Action<string> onOutput, CancellationToken ct = default)
     {
-        onOutput($"[i] Planification de CHKDSK sur {drive}: au prochain démarrage...");
-        await CommandRunner.RunAsync($"echo Y | chkdsk {drive}: /f /r /x", onOutput, ct);
-        onOutput("[OK] CHKDSK planifié — redémarrez le PC pour l'exécuter");
+        onOutput($"[i] Programmation de CHKDSK sur {drive}: au prochain démarrage…");
+        await CommandRunner.RunAsync($"echo {DiskCheckService.YesLetter()}| chkdsk {drive}: /f /r /x", onOutput, ct);
+        onOutput("[OK] CHKDSK programmé : redémarrez le PC pour l'exécuter.");
     }
-
     /// <summary>Ouvre l'interface interactive de vérification et réparation CHKDSK.</summary>
     public static async Task OpenChkdskDialog(Action<string> onOutput, CancellationToken ct = default)
     {
@@ -216,37 +202,12 @@ if ($fails) {
         return Task.CompletedTask;
     }
 
-    // Réparation des icônes  (sys_repair_icons)
+    // Réparation des icônes  (sys_repair_icons) — reconstruction complète (voir ShellRepairService)
     public static async Task RepairIcons(Action<string> onOutput, CancellationToken ct = default)
-    {
-        onOutput("[i] Réparation du cache d'icônes...");
-        await PowerShellRunner.RunAsync(@"
-Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
-$cacheDir = ""$env:LOCALAPPDATA\Microsoft\Windows\Explorer""
-Get-ChildItem $cacheDir -Filter 'iconcache_*.db' | Remove-Item -Force -ErrorAction SilentlyContinue
-Get-ChildItem $cacheDir -Filter 'thumbcache_*.db' | Remove-Item -Force -ErrorAction SilentlyContinue
-Start-Sleep 1
-Start-Process explorer.exe
-Write-Output '[OK] Cache icônes supprimé — Explorateur redémarré'
-", onOutput, ct);
-    }
-
-    // Point de restauration  (res_restore_point)
+        => await ShellRepairService.RebuildIconCacheAsync(onOutput, ct);
+    // Point de restauration  (res_restore_point) — création vérifiée, sans la limite des 24 h (voir RestorePointService)
     public static async Task CreateRestorePoint(Action<string> onOutput, CancellationToken ct = default)
-    {
-        onOutput("[i] Création d'un point de restauration...");
-        await PowerShellRunner.RunAsync(@"
-Enable-ComputerRestore -Drive ""$env:SystemDrive\"" -ErrorAction SilentlyContinue
-$before = @(Get-ComputerRestorePoint -ErrorAction SilentlyContinue).Count
-try {
-    Checkpoint-Computer -Description 'Alex Toolkit - Point automatique' -RestorePointType MODIFY_SETTINGS -ErrorAction Stop -WarningAction SilentlyContinue
-} catch { Write-Output ""[ERR] $($_.Exception.Message)"" }
-$after = @(Get-ComputerRestorePoint -ErrorAction SilentlyContinue).Count
-if ($after -gt $before) { Write-Output '[OK] Point de restauration créé avec succès' }
-else { Write-Output '[!] Aucun nouveau point créé : Windows limite à un point par 24 h (un point récent existe déjà) ou la protection système est désactivée.' }
-", onOutput, ct);
-    }
-
+        => await RestorePointService.CreateAsync($"Alex Toolkit - avant intervention ({DateTime.Now:dd/MM/yyyy HH:mm})", onOutput, ct);
     /// <summary>Ouvre l'interface interactive de gestion et création de points de restauration système.</summary>
     public static async Task OpenRestorePointDialog(Action<string> onOutput, CancellationToken ct = default)
     {

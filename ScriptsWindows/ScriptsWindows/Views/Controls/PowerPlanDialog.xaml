@@ -1,136 +1,78 @@
-<Window xmlns:ui="http://schemas.modernwpf.com/2019" ui:WindowHelper.UseModernWindowStyle="True" x:Class="ScriptsWindows.Views.Controls.PowerPlanDialog"
+<Window xmlns:ui="http://schemas.modernwpf.com/2019" ui:WindowHelper.UseModernWindowStyle="True"
+        x:Class="ScriptsWindows.Views.Controls.PowerPlanDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Gestion des Plans d'Alimentation"
-        Width="680" Height="560"
-        WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
-        Background="{DynamicResource BgDeep}"
-        Foreground="{DynamicResource TextPrimary}"
-        WindowStyle="SingleBorderWindow">
-
-    <Window.Resources>
-
-
-
-    </Window.Resources>
-
+        Title="Vitesse du PC et alimentation"
+        Width="820" Height="780" WindowStartupLocation="CenterOwner" ResizeMode="CanResize" MinWidth="700" MinHeight="600"
+        Background="{DynamicResource BgDeep}" Foreground="{DynamicResource TextPrimary}" FontFamily="{StaticResource FontMain}">
     <Grid Margin="24">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
 
-        <!-- En-tête -->
-        <DockPanel Grid.Row="0" Margin="0,0,0,16">
-            <Border Background="{DynamicResource BgCard}" CornerRadius="10" Padding="10" Margin="0,0,14,0" VerticalAlignment="Center">
-                <TextBlock Text="⚡" FontSize="26" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+        <DockPanel Grid.Row="0" Margin="0,0,0,14">
+            <Border Width="40" Height="40" CornerRadius="8" Background="{DynamicResource AccentDim}" Margin="0,0,14,0">
+                <TextBlock Text="&#xE945;" FontFamily="{StaticResource FontIcon}" FontSize="18" Foreground="{DynamicResource AccentText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Border>
             <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="Gestion des Plans d'Alimentation" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}"/>
-                <TextBlock Text="Basculez entre le mode normal/équilibré et les performances élevées à volonté."
-                           FontSize="12.5" Foreground="{DynamicResource TextSecondary}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                <TextBlock Text="Vitesse du PC et alimentation" FontFamily="{StaticResource FontDisplay}" FontSize="19" FontWeight="SemiBold"/>
+                <TextBlock x:Name="TxtSubtitle" Text="Lecture des réglages d'alimentation…" Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
             </StackPanel>
         </DockPanel>
 
-        <!-- Bandeau état actif -->
-        <Border Grid.Row="1" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,16">
-            <DockPanel LastChildFill="True">
-                <TextBlock Text="PLAN ACTIF :" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <TextBlock x:Name="TxtActivePlanBadge" Text="Détection en cours..." FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource AccentText}" VerticalAlignment="Center"/>
-            </DockPanel>
-        </Border>
-
-        <!-- Liste des plans d'alimentation disponibles -->
-        <Border Grid.Row="2" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,16">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <ItemsControl x:Name="PlansItemsControl">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Background="{DynamicResource BgDeep}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,8">
-                                <DockPanel LastChildFill="True">
-                                    <!-- Bouton Activer à droite -->
-                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
-                                        <Border x:Name="BadgeActif"
-                                                Background="{DynamicResource SuccessBg}" BorderBrush="{DynamicResource Success}" BorderThickness="1"
-                                                CornerRadius="6" Padding="8,4" Margin="0,0,8,0"
-                                                Visibility="{Binding IsActiveVisibility}">
-                                            <TextBlock Text="✓ ACTIF" Foreground="{DynamicResource SuccessText}" FontSize="11" FontWeight="Bold"/>
-                                        </Border>
-                                        <Button Content="Activer ce plan"
-                                                Style="{StaticResource ActionButton}"
-                                                Padding="12,6" FontSize="12"
-                                                Tag="{Binding Guid}"
-                                                IsEnabled="{Binding CanActivate}"
-                                                Click="BtnActivatePlan_Click"/>
-                                    </StackPanel>
-
-                                    <!-- Icône et Infos du plan -->
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding Icon}" FontSize="20" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                        <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding Name}" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
-                                            <TextBlock Text="{Binding Description}" FontSize="11" Foreground="{DynamicResource TextSecondary}" Margin="0,2,0,0"/>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </DockPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-        </Border>
-
-        <!-- Boutons de raccourcis rapides -->
-        <Border Grid.Row="3" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,14">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel>
-                <TextBlock Text="ACTIONS RAPIDES EN 1 CLIC" FontSize="10.5" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,8"/>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="10"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="10"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
+                <!-- Mode d'alimentation (curseur de Windows 11) -->
+                <Border Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="16,12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="Mode d'alimentation" FontWeight="SemiBold" FontSize="14"/>
+                        <TextBlock Text="Le réglage de Paramètres > Système > Alimentation. Sur les PC récents, c'est lui qui change vraiment la vitesse."
+                                   Foreground="{DynamicResource TextSecondary}" FontSize="11.5" TextWrapping="Wrap" Margin="0,2,0,10"/>
+                        <UniformGrid Columns="3">
+                            <Button x:Name="BtnModeEff" Content="Meilleure efficacité" Margin="0,0,6,0" Click="BtnMode_Click" Tag="eff" ToolTip="Batterie qui dure plus longtemps, PC un peu moins rapide"/>
+                            <Button x:Name="BtnModeBal" Content="Équilibré" Margin="3,0,3,0" Click="BtnMode_Click" Tag="bal" ToolTip="Recommandé : rapide quand il faut, économe sinon"/>
+                            <Button x:Name="BtnModePerf" Content="Meilleures performances" Margin="6,0,0,0" Click="BtnMode_Click" Tag="perf" ToolTip="Processeur au maximum : plus de chaleur et de bruit, batterie qui baisse plus vite"/>
+                        </UniformGrid>
+                        <TextBlock x:Name="TxtMode" FontSize="12" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
 
-                    <Button Grid.Column="0"
-                            Style="{StaticResource SuccessActionButton}"
-                            Click="BtnSetBalanced_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <TextBlock Text="⚖️" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Mode Normal (Équilibré)" VerticalAlignment="Center" FontSize="12"/>
-                        </StackPanel>
-                    </Button>
+                <!-- Modes de gestion -->
+                <Border Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="16,12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" x:Name="BtnDuplicates" Content="Supprimer les doublons" Style="{StaticResource ActionButton}" Visibility="Collapsed" Click="BtnDuplicates_Click"/>
+                            <TextBlock Text="Modes de gestion de l'alimentation" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                        </DockPanel>
+                        <TextBlock x:Name="TxtPlansInfo" Foreground="{DynamicResource TextSecondary}" FontSize="11.5" TextWrapping="Wrap" Margin="0,2,0,8"/>
+                        <StackPanel x:Name="PanelPlans"/>
+                        <WrapPanel Margin="0,8,0,0">
+                            <Button x:Name="BtnHigh" Content="Ajouter « Haute performance »" Style="{StaticResource ActionButton}" Margin="0,0,8,0" Click="BtnSetHigh_Click"/>
+                            <Button x:Name="BtnUltimate" Content="Ajouter « Performances optimales »" Style="{StaticResource ActionButton}" Click="BtnSetUltimate_Click"
+                                    ToolTip="Pour PC fixe : le processeur ne se repose jamais (consommation plus élevée)"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
 
-                    <Button Grid.Column="2"
-                            Style="{StaticResource PrimaryActionButton}"
-                            Click="BtnSetHigh_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <TextBlock Text="🚀" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Hautes Performances" VerticalAlignment="Center" FontSize="12"/>
-                        </StackPanel>
-                    </Button>
-
-                    <Button Grid.Column="4"
-                            Style="{StaticResource OrangeActionButton}"
-                            Click="BtnSetUltimate_Click">
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <TextBlock Text="⚡" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Performances Ultimes" VerticalAlignment="Center" FontSize="12"/>
-                        </StackPanel>
-                    </Button>
-                </Grid>
+                <!-- Veille et écran -->
+                <Border Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="16,12">
+                    <StackPanel>
+                        <TextBlock Text="Mise en veille et écran" FontWeight="SemiBold" FontSize="14"/>
+                        <TextBlock Text="Pendant une longue sauvegarde ou un téléchargement, empêchez la mise en veille sur secteur, puis remettez un délai ensuite."
+                                   Foreground="{DynamicResource TextSecondary}" FontSize="11.5" TextWrapping="Wrap" Margin="0,2,0,8"/>
+                        <TextBlock x:Name="TxtTimeouts" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <WrapPanel>
+                            <Button Content="Jamais de veille sur secteur" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="BtnNoSleep_Click"/>
+                            <Button Content="Veille après 30 min sur secteur" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="BtnSleep30_Click"/>
+                            <Button Content="Écran éteint après 10 min" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="BtnScreen10_Click"/>
+                            <Button Content="Paramètres d'alimentation" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="BtnSettings_Click"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
             </StackPanel>
-        </Border>
+        </ScrollViewer>
 
-        <!-- Barre de statut et bouton Fermer -->
-        <DockPanel Grid.Row="4">
-            <Button DockPanel.Dock="Right" Content="Fermer" Style="{StaticResource ActionButton}" Width="90" Click="BtnClose_Click"/>
-            <TextBlock x:Name="TxtStatus" Text="Prêt." FontSize="12" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center"/>
+        <DockPanel Grid.Row="2" Margin="0,14,0,0">
+            <Button DockPanel.Dock="Right" Content="Fermer" Style="{StaticResource ActionButton}" Click="BtnClose_Click"/>
+            <TextBlock x:Name="TxtStatus" Foreground="{DynamicResource TextSecondary}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
         </DockPanel>
     </Grid>
 </Window>

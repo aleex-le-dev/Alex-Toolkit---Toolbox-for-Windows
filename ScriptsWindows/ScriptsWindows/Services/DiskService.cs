@@ -102,13 +102,14 @@ foreach ($d in $disks) {
         onOutput("[OK] Optimisation du lecteur C: terminée");
     }
 
-    /// <summary>Ouvre l'utilitaire graphique d'optimisation et défragmentation Windows (dfrgui.exe).</summary>
-    public static Task LaunchDefragGui(Action<string> onOutput, CancellationToken ct = default)
+    /// <summary>Ouvre la fenêtre d'optimisation des disques (DiskOptimizeDialog : type de support, dernière optimisation, TRIM / défragmentation).</summary>
+    public static async Task LaunchDefragGui(Action<string> onOutput, CancellationToken ct = default)
     {
-        onOutput("[i] Ouverture de l'Optimiseur de lecteurs Windows...");
-        CommandRunner.StartProcess("dfrgui.exe");
-        onOutput("[OK] Utilitaire d'optimisation ouvert");
-        return Task.CompletedTask;
+        await Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            var dialog = new Views.Controls.DiskOptimizeDialog(onOutput, ct) { Owner = Application.Current.MainWindow };
+            dialog.ShowDialog();
+        });
     }
 
     /// <summary>Vérifie et planifie la réparation complète du disque C: via CHKDSK.</summary>
@@ -136,12 +137,9 @@ foreach ($d in $disks) {
         return Task.CompletedTask;
     }
 
-    /// <summary>Ouvre l'interface interactive de gestion et chiffrement BitLocker (sélection de disque, état, activation/désactivation).</summary>
+    /// <summary>Ouvre la fenêtre BitLocker (BitLockerService : état réel, clé de récupération, suspension, déverrouillage, activation sûre).</summary>
     public static async Task ManageBitLocker(Action<string> onOutput, CancellationToken ct = default)
     {
-        onOutput("[i] Analyse de l'état BitLocker sur tous les lecteurs...");
-        await DiagnosticService.CheckBitLocker(onOutput, ct);
-
         await Application.Current.Dispatcher.InvokeAsync(() =>
         {
             var dialog = new Views.Controls.BitLockerDialog(onOutput, ct)

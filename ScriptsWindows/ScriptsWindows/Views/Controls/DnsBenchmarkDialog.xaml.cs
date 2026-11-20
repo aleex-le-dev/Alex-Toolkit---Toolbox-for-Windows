@@ -317,20 +317,12 @@ public partial class DnsBenchmarkDialog : UserControl
 
             _onOutput($"🌐 [DNS] Application de {item.Name} ({item.PrimaryIp})...");
 
-            string ps = $@"
-$adapters = Get-NetAdapter | Where-Object {{ $_.Status -eq 'Up' -and $_.Virtual -ne $true }}
-foreach ($a in $adapters) {{
-    Set-DnsClientServerAddress -InterfaceAlias $a.Name -ServerAddresses ('{item.PrimaryIp}', '{item.SecondaryIp}') -ErrorAction SilentlyContinue
-}}
-Clear-DnsClientCache -ErrorAction SilentlyContinue
-";
-            await PowerShellRunner.RunAsync(ps, _onOutput, _ct);
-            _onOutput($"[OK] Serveur DNS configuré sur {item.Name} et cache vidé.");
-
-            // Mettre à jour immédiatement le DNS actif et l'UI
+            var (ok, msg) = await ApplyToPhysicalAsync(new[] { item.PrimaryIp, item.SecondaryIp }.Where(s => !string.IsNullOrWhiteSpace(s)).ToArray(),
+                                                       Services.DnsService.FindPreset(item.PrimaryIp)?.V6 ?? Array.Empty<string>());
+            _onOutput((ok ? "[OK] " : "❌ [ERREUR] ") + $"DNS {item.Name} : {msg}");
             RefreshActiveDnsDisplay();
-
-            AppMessageBox.Show(Window.GetWindow(this), $"Le serveur {item.Name} est désormais actif sur votre connexion !", "DNS appliqué avec succès", MessageBoxButton.OK, MessageBoxImage.Information);
+            AppMessageBox.Show(Window.GetWindow(this), ok ? $"Le serveur {item.Name} est actif ({msg})." : $"{item.Name} n'a pas été appliqué : {msg}.",
+                ok ? "DNS appliqué" : "DNS non appliqué", MessageBoxButton.OK, ok ? MessageBoxImage.Information : MessageBoxImage.Warning);
         }
     }
 
@@ -344,20 +336,19 @@ Clear-DnsClientCache -ErrorAction SilentlyContinue
 
         _onOutput("🔄 [RETOUR EN ARRIÈRE] Rétablissement du DNS automatique (DHCP)...");
 
-        string ps = @"
-$adapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' -and $_.Virtual -ne $true }
-foreach ($a in $adapters) {
-    Set-DnsClientServerAddress -InterfaceAlias $a.Name -ResetServerAddresses -ErrorAction SilentlyContinue
-}
-Clear-DnsClientCache -ErrorAction SilentlyContinue
-";
-        await PowerShellRunner.RunAsync(ps, _onOutput, _ct);
-        _onOutput("[OK] DNS automatique (DHCP) restauré sur toutes les cartes réseau.");
-
-        // Mettre à jour immédiatement le DNS actif et l'UI
+        var (ok, msg) = await ApplyToPhysicalAsync(Array.Empty<string>(), Array.Empty<string>());
+        _onOutput((ok ? "[OK] DNS automatiques rétablis : " : "❌ [ERREUR] DNS automatiques : ") + msg);
         RefreshActiveDnsDisplay();
+        AppMessageBox.Show(Window.GetWindow(this), ok ? "Votre connexion utilise de nouveau les DNS de votre box Internet." : $"Échec : {msg}.",
+            ok ? "DNS automatiques rétablis" : "Échec", MessageBoxButton.OK, ok ? MessageBoxImage.Information : MessageBoxImage.Warning);
+    }
 
-        AppMessageBox.Show(Window.GetWindow(this), "Votre connexion utilise de nouveau le DNS automatique par défaut de votre box Internet (DHCP).", "DHCP rétabli", MessageBoxButton.OK, MessageBoxImage.Information);
+    /// <summary>Applique sur les cartes physiques actives via DnsService (IPv4 + IPv6, test avant, vérification et retour arrière).</summary>
+    private async Task<(bool, string)> ApplyToPhysicalAsync(string[] v4, string[] v6)
+    {
+        var all = await Services.DnsService.GetAdaptersAsync(_ct);
+        var targets = all.Any(a => a.Hardware) ? all.Where(a => a.Hardware).ToList() : all;
+        return await Services.DnsService.ApplyAsync(targets, v4, v6, _ct);
     }
 
     private void BtnClose_Click(object sender, RoutedEventArgs e)

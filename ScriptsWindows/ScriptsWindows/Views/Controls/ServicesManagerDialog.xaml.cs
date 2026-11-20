@@ -1,218 +1,156 @@
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using ScriptsWindows.Core;
 using ScriptsWindows.Services;
 
 namespace ScriptsWindows.Views.Controls;
 
-public class ServicePresetItem
-{
-    public string Name { get; set; } = "";
-    public string DisplayName { get; set; } = "";
-    public string Description { get; set; } = "";
-    public string Status { get; set; } = "Inconnu";
-    public string StartType { get; set; } = "—";
-
-    public override string ToString() => $"{DisplayName} ({Name})";
-}
-
+/// <summary>Gestionnaire de services complet (WindowsServicesService) : filtres, éditeur, actions et démarrage protégés.</summary>
 public partial class ServicesManagerDialog : Window
 {
     private readonly Action<string> _onOutput;
     private readonly CancellationToken _ct;
-
-    private readonly List<ServicePresetItem> _services = new()
-    {
-        new() { Name = "spooler", DisplayName = "Spouleur d'impression", Description = "Gère la mise en mémoire tampon des tâches d'impression. Indispensable pour imprimer." },
-        new() { Name = "wuauserv", DisplayName = "Windows Update", Description = "Télécharge et installe les correctifs de sécurité et mises à jour du système." },
-        new() { Name = "SysMain", DisplayName = "SysMain (Superfetch)", Description = "Maintient et optimise les performances du système au fil du temps." },
-        new() { Name = "WSearch", DisplayName = "Windows Search", Description = "Fournit l'indexation de contenu, la mise en cache des propriétés et la recherche de fichiers." },
-        new() { Name = "DiagTrack", DisplayName = "Télémétrie Windows", Description = "Collecte et envoie les données de télémétrie et d'expérience utilisateur à Microsoft." },
-        new() { Name = "DoSvc", DisplayName = "Optimisation de livraison", Description = "Gère le téléchargement des mises à jour Windows et applications du Store en réseau local / P2P." },
-        new() { Name = "BITS", DisplayName = "Service BITS", Description = "Transfère des fichiers en arrière-plan en utilisant la bande passante réseau inactive." },
-        new() { Name = "LanmanServer", DisplayName = "Serveur (Partage de fichiers)", Description = "Prend en charge le partage de fichiers, d'imprimantes et de canaux nommés sur le réseau." }
-    };
+    private List<WinServiceInfo> _all = new();
+    private WinServiceInfo? _selected;
+    private bool _busy;
 
     public ServicesManagerDialog(Action<string> onOutput, CancellationToken ct = default)
     {
         InitializeComponent();
-        _onOutput = onOutput;
+        _onOutput = onOutput ?? (_ => { });
         _ct = ct;
-
         Loaded += async (_, _) => await LoadServicesAsync();
     }
 
+    private static Brush B(string k) => ThemeManager.GetBrush(k);
+    private static TextBlock T(string text, double size, string brush, FontWeight? w = null) => new()
+    { Text = text, FontSize = size, Foreground = B(brush), FontWeight = w ?? FontWeights.Normal, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
+
     private async Task LoadServicesAsync()
     {
-        TxtFeedback.Text = "Interrogation des services Windows...";
-        CmbServices.Items.Clear();
-
-        foreach (var s in _services)
-        {
-            CmbServices.Items.Add(s);
-        }
-
-        if (CmbServices.Items.Count > 0)
-        {
-            CmbServices.SelectedIndex = 0;
-            await RefreshSelectedServiceStatusAsync();
-        }
-    }
-
-    private async void CmbServices_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        await RefreshSelectedServiceStatusAsync();
-    }
-
-    private async Task RefreshSelectedServiceStatusAsync()
-    {
-        if (CmbServices.SelectedItem is not ServicePresetItem item) return;
-
-        TxtServiceName.Text   = item.Name;
-        TxtDescription.Text   = item.Description;
-        TxtServiceStatus.Text = "Lecture...";
-        TxtStartupType.Text   = "Lecture...";
-
+        TxtFeedback.Text = "Lecture des services…";
         try
         {
-            string ps = $@"
-$s = Get-Service -Name '{item.Name}' -ErrorAction SilentlyContinue
-if ($s) {{
-    [PSCustomObject]@{{
-        Status = ""$($s.Status)""
-        StartType = ""$($s.StartType)""
-    }} | ConvertTo-Json -Compress
-}} else {{
-    '{{}}'
-}}";
-            string json = await PowerShellRunner.RunAsync(ps, _ct);
-            json = json.Trim();
+            string? keep = _selected?.Name;
+            _all = await WindowsServicesService.GetAllAsync(_ct);
+            int broken = _all.Count(s => s.LooksBroken);
+            TxtFeedback.Text = $"{_all.Count} services · {_all.Count(s => s.State == "Running")} en cours · {broken} automatique(s) arrêté(s) · {_all.Count(s => !s.IsMicrosoft)} hors Microsoft";
+            if (CmbFilter.SelectedIndex == 0 && broken == 0) CmbFilter.SelectedIndex = 1;
+            _selected = keep == null ? null : _all.FirstOrDefault(s => s.Name == keep);
+            Render();
+        }
+        catch (Exception ex) { TxtFeedback.Text = $"Erreur : {ex.Message}"; }
+    }
 
-            if (!string.IsNullOrWhiteSpace(json) && json.StartsWith("{"))
-            {
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-                if (root.TryGetProperty("Status", out var st)) item.Status = st.GetString() ?? "Inconnu";
-                if (root.TryGetProperty("StartType", out var ty)) item.StartType = ty.GetString() ?? "—";
-            }
+    private void Filter_Changed(object sender, RoutedEventArgs e) { if (IsLoaded) Render(); }
 
-            bool isRunning = item.Status.Equals("Running", StringComparison.OrdinalIgnoreCase);
+    private void Render()
+    {
+        string q = TxtSearch.Text.Trim();
+        IEnumerable<WinServiceInfo> list = CmbFilter.SelectedIndex switch
+        {
+            0 => _all.Where(s => s.LooksBroken),
+            1 => _all.Where(s => !s.IsMicrosoft),
+            2 => _all.Where(s => s.State == "Running"),
+            3 => _all.Where(s => s.StartMode == "Disabled"),
+            _ => _all
+        };
+        if (q.Length > 0)
+            list = list.Where(s => (s.DisplayName + " " + s.Name + " " + s.Description + " " + s.Company).Contains(q, StringComparison.CurrentCultureIgnoreCase));
+        var shown = list.ToList();
+        PanelList.Children.Clear();
+        foreach (var s in shown) PanelList.Children.Add(BuildRow(s));
+        TxtEmpty.Visibility = shown.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        TxtEmpty.Text = CmbFilter.SelectedIndex == 0 && q.Length == 0 ? "Aucun service automatique arrêté : tout tourne normalement." : "Aucun service ne correspond.";
+        ShowDetail();
+    }
 
-            TxtServiceStatus.Text = isRunning ? "En cours d'exécution (Running)" : "Arrêté (Stopped)";
-            BadgeStatus.Background = isRunning ? (SolidColorBrush)ThemeManager.GetBrush("Success") : (SolidColorBrush)ThemeManager.GetBrush("Danger");
-            TxtStartupType.Text = item.StartType;
+    private Border BuildRow(WinServiceInfo s)
+    {
+        var g = new Grid();
+        g.ColumnDefinitions.Add(new ColumnDefinition());
+        g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(170) });
+        g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(90) });
+        g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
+        var info = new StackPanel { Margin = new Thickness(0, 0, 10, 0) };
+        info.Children.Add(T(s.DisplayName, 12.5, "TextPrimary", FontWeights.SemiBold));
+        info.Children.Add(T(s.Name + (s.IsCritical ? "  ·  vital pour Windows" : ""), 11, "TextMuted"));
+        g.Children.Add(info);
+        var co = T(s.Company.Length > 0 ? s.Company : s.IsMicrosoft ? "Microsoft" : "Éditeur inconnu", 11.5, s.IsMicrosoft ? "TextMuted" : "AccentText");
+        Grid.SetColumn(co, 1); g.Children.Add(co);
+        var st = T(s.StateLabel, 12, s.State == "Running" ? "SuccessText" : s.LooksBroken ? "DangerText" : "TextMuted", FontWeights.SemiBold);
+        Grid.SetColumn(st, 2); g.Children.Add(st);
+        var sm = T(s.StartLabel, 11.5, s.StartMode == "Disabled" ? "WarningText" : "TextSecondary");
+        Grid.SetColumn(sm, 3); g.Children.Add(sm);
+        bool sel = _selected?.Name == s.Name;
+        var border = new Border
+        {
+            Child = g, Padding = new Thickness(8, 6, 8, 6), CornerRadius = new CornerRadius(5), Cursor = Cursors.Hand, ToolTip = s.Description.Length > 0 ? s.Description : null,
+            Background = sel ? B("AccentDim") : Brushes.Transparent, BorderBrush = B("Border"), BorderThickness = new Thickness(0, 0, 0, 1)
+        };
+        border.MouseLeftButtonUp += (_, _) => { _selected = s; Render(); };
+        return border;
+    }
 
-            BtnStart.IsEnabled   = !isRunning;
-            BtnStop.IsEnabled    = isRunning;
-            BtnRestart.IsEnabled = isRunning;
-            BtnPurgeSpooler.Visibility = item.Name.Equals("spooler", StringComparison.OrdinalIgnoreCase)
-                ? Visibility.Visible
-                : Visibility.Collapsed;
-            TxtFeedback.Text     = $"État de {item.DisplayName} mis à jour.";
+    private void ShowDetail()
+    {
+        if (_selected is not WinServiceInfo s) { PanelDetail.Visibility = Visibility.Collapsed; return; }
+        PanelDetail.Visibility = Visibility.Visible;
+        TxtDetailName.Text = $"{s.DisplayName}  —  {s.StateLabel}";
+        TxtDetailName.Foreground = B(s.State == "Running" ? "SuccessText" : s.LooksBroken ? "DangerText" : "TextPrimary");
+        TxtDetailInfo.Text = $"{s.Name} · {s.StartLabel} · {(s.Company.Length > 0 ? s.Company : "éditeur inconnu")} · {s.ExePath}" + (s.IsCritical ? " · VITAL : ne peut être ni arrêté ni désactivé ici" : "");
+        TxtDetailDesc.Text = s.Description.Length > 0 ? s.Description : "Pas de description.";
+        BtnStart.IsEnabled = !_busy && s.State != "Running" && s.StartMode != "Disabled";
+        BtnStop.IsEnabled = !_busy && s.State == "Running" && !s.IsCritical;
+        BtnRestart.IsEnabled = !_busy && s.State == "Running" && !s.IsCritical;
+        BtnApplyStart.IsEnabled = !_busy;
+        CmbStart.SelectedIndex = s.StartMode switch { "Auto" => s.Delayed ? 1 : 0, "Manual" => 2, "Disabled" => 3, _ => -1 };
+        BtnStart.ToolTip = s.StartMode == "Disabled" ? "Service désactivé : choisissez d'abord un type de démarrage" : null;
+    }
+
+    private bool ConfirmMicrosoft(WinServiceInfo s, string what) =>
+        s.IsMicrosoft == false || AppMessageBox.Show(this, $"« {s.DisplayName} » est un service de Windows.\n\n{what} peut faire disparaître une fonction (impression, son, réseau, mises à jour…). Continuer ?",
+            "Service de Windows", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
+
+    private async Task ActAsync(string label, Func<WinServiceInfo, Task> work)
+    {
+        if (_busy || _selected is not WinServiceInfo s) return;
+        _busy = true; ShowDetail();
+        TxtFeedback.Text = $"{label} : {s.DisplayName}…";
+        try
+        {
+            await work(s);
+            _onOutput($"[OK] {label} : {s.DisplayName} ({s.StateLabel}, {s.StartLabel}).");
+            TxtFeedback.Text = $"{label} : {s.DisplayName} → {s.StateLabel}, {s.StartLabel}.";
         }
         catch (Exception ex)
         {
-            TxtServiceStatus.Text = "Erreur";
-            TxtFeedback.Text = ex.Message;
+            _onOutput($"❌ [ERREUR] {label} {s.DisplayName} : {ex.Message}");
+            TxtFeedback.Text = $"Impossible : {ex.Message}";
         }
+        finally { _busy = false; Render(); }
     }
 
-    private async void BtnPurgeSpooler_Click(object sender, RoutedEventArgs e)
-    {
-        BtnPurgeSpooler.IsEnabled = false;
-        TxtFeedback.Text = "Purge de la file d'attente d'impression en cours...";
-        try
-        {
-            await RepairService.FixPrintSpooler(_onOutput, _ct);
-            TxtFeedback.Text = "File d'attente purgée et spouleur relancé.";
-            await RefreshSelectedServiceStatusAsync();
-        }
-        catch (Exception ex)
-        {
-            _onOutput($"[ERR] Échec de la purge de la file d'impression : {ex.Message}");
-            TxtFeedback.Text = $"Erreur : {ex.Message}";
-        }
-        finally
-        {
-            BtnPurgeSpooler.IsEnabled = true;
-        }
-    }
-
-    private async void BtnStart_Click(object sender, RoutedEventArgs e)
-    {
-        if (CmbServices.SelectedItem is not ServicePresetItem item) return;
-
-        _onOutput($"\n[i] Démarrage du service '{item.DisplayName}' ({item.Name})...");
-        TxtFeedback.Text = $"Démarrage de {item.Name}...";
-
-        try
-        {
-            await PowerShellRunner.RunAsync($"Start-Service -Name '{item.Name}' -ErrorAction Stop", _onOutput, _ct);
-            _onOutput($"[OK] Service '{item.DisplayName}' démarré avec succès.");
-            TxtFeedback.Text = $"Service {item.Name} démarré.";
-            await RefreshSelectedServiceStatusAsync();
-        }
-        catch (Exception ex)
-        {
-            _onOutput($"[ERR] Échec du démarrage : {ex.Message}");
-            TxtFeedback.Text = $"Erreur : {ex.Message}";
-        }
-    }
+    private async void BtnStart_Click(object sender, RoutedEventArgs e) => await ActAsync("Démarrage", s => WindowsServicesService.ControlAsync(s, "start", _ct));
+    private async void BtnRestart_Click(object sender, RoutedEventArgs e) => await ActAsync("Redémarrage", s => WindowsServicesService.ControlAsync(s, "restart", _ct));
 
     private async void BtnStop_Click(object sender, RoutedEventArgs e)
     {
-        if (CmbServices.SelectedItem is not ServicePresetItem item) return;
-
-        _onOutput($"\n[i] Arrêt du service '{item.DisplayName}' ({item.Name})...");
-        TxtFeedback.Text = $"Arrêt de {item.Name}...";
-
-        try
-        {
-            await PowerShellRunner.RunAsync($"Stop-Service -Name '{item.Name}' -Force -ErrorAction Stop", _onOutput, _ct);
-            _onOutput($"[OK] Service '{item.DisplayName}' arrêté avec succès.");
-            TxtFeedback.Text = $"Service {item.Name} arrêté.";
-            await RefreshSelectedServiceStatusAsync();
-        }
-        catch (Exception ex)
-        {
-            _onOutput($"[ERR] Échec de l'arrêt : {ex.Message}");
-            TxtFeedback.Text = $"Erreur : {ex.Message}";
-        }
+        if (_selected is WinServiceInfo s && !ConfirmMicrosoft(s, "L'arrêter")) return;
+        await ActAsync("Arrêt", sv => WindowsServicesService.ControlAsync(sv, "stop", _ct));
     }
 
-    private async void BtnRestart_Click(object sender, RoutedEventArgs e)
+    private async void BtnApplyStart_Click(object sender, RoutedEventArgs e)
     {
-        if (CmbServices.SelectedItem is not ServicePresetItem item) return;
-
-        _onOutput($"\n[i] Redémarrage du service '{item.DisplayName}' ({item.Name})...");
-        TxtFeedback.Text = $"Redémarrage de {item.Name}...";
-
-        try
-        {
-            await PowerShellRunner.RunAsync($"Restart-Service -Name '{item.Name}' -Force -ErrorAction Stop", _onOutput, _ct);
-            _onOutput($"[OK] Service '{item.DisplayName}' redémarré avec succès.");
-            TxtFeedback.Text = $"Service {item.Name} redémarré.";
-            await RefreshSelectedServiceStatusAsync();
-        }
-        catch (Exception ex)
-        {
-            _onOutput($"[ERR] Échec du redémarrage : {ex.Message}");
-            TxtFeedback.Text = $"Erreur : {ex.Message}";
-        }
+        if (_selected is not WinServiceInfo s || CmbStart.SelectedItem is not ComboBoxItem item) return;
+        string mode = (string)item.Tag;
+        if ((mode == "disabled" || mode == "manual") && !ConfirmMicrosoft(s, mode == "disabled" ? "Le désactiver" : "Le passer en manuel")) return;
+        await ActAsync("Type de démarrage", sv => WindowsServicesService.SetStartAsync(sv, mode, _ct));
     }
 
-    private void BtnOpenServicesMsc_Click(object sender, RoutedEventArgs e)
-    {
-        _onOutput("\n[i] Ouverture de la console MMC des Services Windows (services.msc)...");
-        CommandRunner.StartProcess("services.msc");
-    }
-
-    private async void BtnRefresh_Click(object sender, RoutedEventArgs e)
-    {
-        await RefreshSelectedServiceStatusAsync();
-    }
-
+    private void BtnOpenServicesMsc_Click(object sender, RoutedEventArgs e) => CommandRunner.StartProcess("services.msc");
+    private async void BtnRefresh_Click(object sender, RoutedEventArgs e) => await LoadServicesAsync();
     private void BtnClose_Click(object sender, RoutedEventArgs e) => Close();
 }

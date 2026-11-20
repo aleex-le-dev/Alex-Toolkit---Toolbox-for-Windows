@@ -87,8 +87,8 @@ public static class ToolRegistry
         // ─── Disque (4) ───
         ["disk_mgmt_gui"] = "diskmgmt.msc",
         ["disk_diskpart"] = "diskpart.exe",
-        ["disk_defrag_gui"] = "dfrgui.exe",
-        ["disk_bitlocker"] = "manage-bde.exe -status",
+        ["disk_defrag_gui"] = "Get-Volume + Get-PhysicalDisk (MediaType), journal Microsoft-Windows-Defrag 258, tâche ScheduledDefrag, defrag X: /O /U /V",
+        ["disk_bitlocker"] = "Get-BitLockerVolume (repli : propriété System.Volume.BitLockerProtection), Suspend/Resume/Unlock/Lock/Enable/Disable-BitLocker, Add-BitLockerKeyProtector -RecoveryPasswordProtector",
         ["disk_profile_migration"] = "robocopy.exe /E /XJ en 2 passes (petits fichiers /MT:16, gros fichiers 1 thread) + netsh wlan export/add profile + winget export/import ; intervention client : Backup-ClientPC.ps1 / Restore-ClientPC.ps1 / Unlock-ClientDrive.ps1 (takeown /R /A + icacls /grant *S-1-5-32-544 /T /C /Q)",
         ["disk_speed_test"] = "Mesure sans cache (FILE_FLAG_NO_BUFFERING + écriture directe) : séquentiel 1 Mo, aléatoire 4 Ko, création de fichiers de 16 Ko ; historique %LocalAppData%\\ScriptsWindows\\drive_speeds.json",
 
@@ -100,11 +100,11 @@ public static class ToolRegistry
         ["upd_winget_manager"] = "winget.exe upgrade (Gestionnaire de paquets interactif Winget)",
 
         // ─── Sécurité (4) ───
-        ["sec_center"] = "AlexToolkit.exe (Centre de surveillance et sécurité unifié Defender, BSOD et RAM)",
+        ["sec_center"] = "AlexToolkit.exe (SecurityAuditService : Get-MpComputerStatus / Get-MpPreference, SecurityCenter2, Get-NetFirewallProfile, UAC, SmartScreen, Get-HotFix, BitLocker ; Set-MpPreference / Set-NetFirewallProfile ; Get-WinEvent 7 j regroupés ; Get-Process groupé)",
         ["nov_privacy_shield"] = "AlexToolkit.exe (Bouclier de confidentialité et blocage télémétrie Windows)",
         ["sec_defender_quickscan"] = "AlexToolkit.exe (interface : DefenderScanDialog — Get-MpComputerStatus, Start-MpScan, Get-MpThreat)",
         ["sec_perfmon_rel"] = "perfmon.exe /rel",
-        ["sec_malware_cleanup"] = "AlexToolkit.exe (hosts, proxy, Get-ScheduledTask, clés Run + Start-MpScan / Start-MpWDOScan, winget AdwCleaner / Malwarebytes)",
+        ["sec_malware_cleanup"] = "AlexToolkit.exe (hosts, proxy, Get-ScheduledTask, clés Run / RunOnce / Policies, HK*\\SOFTWARE\\Policies (ExtensionInstallForcelist, HomepageLocation…), IFEO Debugger, Winlogon Shell / Userinit, root\\subscription, Get-MpPreference exclusions + Start-MpScan / Start-MpWDOScan, winget AdwCleaner / Malwarebytes)",
         ["sec_user_accounts"] = "AlexToolkit.exe (Comptes locaux : Get/New/Set/Remove-LocalUser, groupes par SID)",
 
         // ─── Personnalisation (3) ───
@@ -707,7 +707,8 @@ public static class ToolRegistry
             Description = "Tout pour votre connexion dans une fenêtre à onglets : diagnostic et changement de DNS, comparatif de vitesse des serveurs DNS, et réparation complète (Grand Reset) en cas de panne.",
             Features = new[]
             {
-                "Diagnostic connexion, IP, et changement de DNS (Cloudflare, Google, Quad9)",
+                "Diagnostic connexion, IP, et DNS réels de chaque connexion (IPv4 et IPv6, box ou manuels, temps de réponse)",
+                "Changement de DNS vérifié (Cloudflare, Cloudflare Familles, Quad9, Google ou au choix) avec retour automatique si Internet ne répond plus",
                 "Benchmark de latence DNS (ping réel) et recommandation du plus rapide",
                 "Réparation Internet en 7 étapes (DNS, Winsock, TCP/IP…) + test final"
             },
@@ -851,12 +852,13 @@ public static class ToolRegistry
         {
             Id = "disk_defrag_gui",
             Name = "Optimiser et accélérer les disques",
-            Description = "Donne un coup de boost à vos disques : accélère les disques durs classiques et rafraîchit la mémoire des SSD récents.",
+            Description = "Montre pour chaque disque s'il s'agit d'un SSD ou d'un disque dur et quand il a été optimisé pour la dernière fois, puis lance l'opération adaptée (TRIM ou défragmentation) avec son avancement.",
             Features = new[]
             {
-                "Défragmentation ciblée des disques magnétiques",
-                "Envoi de la commande TRIM pour rafraîchir les SSD",
-                "Analyse et planification de l'état de fragmentation"
+                "Type de support détecté (SSD / disque dur) : un SSD n'est jamais défragmenté",
+                "Date de la dernière optimisation, alerte au-delà de 5 semaines",
+                "Optimisation avec pourcentage d'avancement, arrêt possible sans risque",
+                "Activer ou désactiver l'optimisation automatique hebdomadaire de Windows"
             },
             Category = "DISQUE",
             SubHeading = "Santé et sécurité de vos fichiers",
@@ -869,12 +871,14 @@ public static class ToolRegistry
         {
             Id = "disk_bitlocker",
             Name = "Protéger et verrouiller un disque (BitLocker)",
-            Description = "Verrouille l'accès à vos disques avec un mot de passe sécurisé pour que personne d'autre ne puisse lire vos données personnelles.",
+            Description = "État du chiffrement de chaque disque, clé de récupération à afficher ou enregistrer, suspension avant une mise à jour du BIOS, déverrouillage d'un disque client, activation sûre.",
             Features = new[]
             {
-                "Statut de chiffrement en direct de chaque lecteur",
-                "Verrouillage par mot de passe ou puce TPM",
-                "Sauvegarde de la clé de récupération de secours"
+                "État réel de chaque disque (protégé, suspendu, en attente d'activation, verrouillé, en cours) avec avancement",
+                "Clé de récupération : affichée, copiée ou enregistrée (alerte si un disque chiffré n'en a pas)",
+                "Suspension pour 1 ou plusieurs redémarrages avant une mise à jour du BIOS ou un changement de carte mère",
+                "Déverrouillage d'un disque client par mot de passe ou clé de récupération (saisie vérifiée)",
+                "Activation : la clé de récupération est enregistrée avant le début du chiffrement"
             },
             Category = "DISQUE",
             SubHeading = "Santé et sécurité de vos fichiers",
@@ -977,13 +981,13 @@ public static class ToolRegistry
         _allTools.Add(new ScriptTool
         {
             Id = "sec_center",
-            Name = "Centre de protection antivirus et surveillance",
-            Description = "Tableau de bord : vérifie si l'antivirus Windows est actif, surveille les plantages récents et identifie les logiciels qui saturent votre mémoire.",
+            Name = "Bilan de sécurité du PC",
+            Description = "Vérifie chaque protection de Windows (antivirus, cloud, pare-feu, SmartScreen, UAC, mises à jour…) et la corrige en un clic ; incidents des 7 derniers jours expliqués ; mémoire par programme.",
             Features = new[]
             {
-                "Statut de l'antivirus et du pare-feu Defender",
-                "Surveillance des derniers plantages système (BSOD)",
-                "Analyse des applications qui saturent la RAM"
+                "Une douzaine de protections vérifiées, corrigeables en un clic",
+                "Arrêts brutaux, écrans bleus, erreurs disque et matériel expliqués",
+                "Programmes qui saturent la mémoire (processus regroupés)"
             },
             Category = "SECURITE",
             SubHeading = "Protection globale de votre ordinateur",
@@ -1069,12 +1073,14 @@ public static class ToolRegistry
         {
             Id = "sec_malware_cleanup",
             Name = "Désinfection et détournements",
-            Description = "Détecte et corrige les détournements typiques des virus et adwares : fichier hosts, proxy, tâches planifiées et démarrages suspects. Analyses Defender et outils spécialisés.",
+            Description = "Détecte et corrige les détournements typiques des virus et adwares : extensions et moteurs de recherche imposés aux navigateurs, fichier hosts, proxy, programmes détournés, démarrages cachés, exclusions de l'antivirus. Analyses Defender et outils spécialisés.",
             Features = new[]
             {
+                "Navigateurs : extensions imposées (hors boutique signalées), page d'accueil / moteur de recherche détournés",
                 "Fichier hosts, proxy WinINET / WinHTTP",
-                "Tâches et démarrages masqués ou encodés",
-                "Analyse hors ligne, AdwCleaner, Malwarebytes"
+                "Tâches, démarrages (Run, RunOnce, stratégies), ouverture de session (Winlogon), abonnements WMI",
+                "Programmes détournés (Gestionnaire des tâches, antivirus…) et exclusions suspectes de Defender",
+                "Sauvegarde avant chaque correction, analyse hors ligne, AdwCleaner, Malwarebytes"
             },
             Category = "SECURITE",
             SubHeading = "Désinfection",

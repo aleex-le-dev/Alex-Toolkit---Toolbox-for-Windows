@@ -67,7 +67,9 @@ function Get-FilesSafe([string]$Folder) {
         $dir = $stack.Pop()
         try { $files = $dir.GetFiles(); $dirs = $dir.GetDirectories() } catch { continue }
         foreach ($f in $files) { $f }
-        foreach ($d in $dirs) { if (-not ($d.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) { $stack.Push($d) } }
+        # « .net » : DLL extraites par les applications .NET en un seul fichier, chargées au besoin (non verrouillées) :
+        # les supprimer pendant que l'application tourne la fait planter. Jamais vidé.
+        foreach ($d in $dirs) { if (-not ($d.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -and $d.Name -ne '.net') { $stack.Push($d) } }
     }
 }
 

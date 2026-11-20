@@ -1,5 +1,3 @@
-using System.Collections.ObjectModel;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -8,361 +6,194 @@ using ScriptsWindows.Services;
 
 namespace ScriptsWindows.Views.Controls;
 
-public class CriticalEventItem
-{
-    public string Time { get; set; } = "—";
-    public string Provider { get; set; } = "Système";
-    public string Message { get; set; } = "";
-}
-
-public class RamProcessItem
-{
-    public int Rank { get; set; } = 1;
-    public string Name { get; set; } = "";
-    public int Pid { get; set; } = 0;
-    public double MemoryMb { get; set; } = 0;
-
-    public string MemoryMbText => MemoryMb >= 1024 
-        ? $"{(MemoryMb / 1024):F2} Go" 
-        : $"{MemoryMb:F0} Mo";
-}
-
+/// <summary>Bilan de sécurité (SecurityAuditService) : protections corrigeables, incidents expliqués, mémoire par programme.</summary>
 public partial class SecurityCenterDialog : Window
 {
     private readonly Action<string> _onOutput;
     private readonly CancellationToken _ct;
-
-    private readonly SolidColorBrush _brushTabActive = (SolidColorBrush)ThemeManager.GetBrush("Accent");    // #4F46E5
-    private readonly SolidColorBrush _brushTabInactive = new(Colors.Transparent);
-    private readonly SolidColorBrush _brushTextActive = (SolidColorBrush)ThemeManager.GetBrush("OnAccent");  // #F9FAFB
-    private readonly SolidColorBrush _brushTextInactive = (SolidColorBrush)ThemeManager.GetBrush("TextSecondary"); // #9CA3AF
-
-    private readonly SolidColorBrush _brushSuccess = (SolidColorBrush)ThemeManager.GetBrush("Success");      // #10B981
-    private readonly SolidColorBrush _brushError = (SolidColorBrush)ThemeManager.GetBrush("Danger");          // #EF4444
-
-    private readonly ObservableCollection<CriticalEventItem> _events = new();
-    private readonly ObservableCollection<RamProcessItem> _ramProcesses = new();
+    private bool _eventsLoaded, _ramLoaded, _busy;
 
     public SecurityCenterDialog(Action<string> onOutput, CancellationToken ct = default)
     {
         InitializeComponent();
-        _onOutput = onOutput;
+        _onOutput = onOutput ?? (_ => { });
         _ct = ct;
-
-        ItemsEventsList.ItemsSource = _events;
-        ItemsRamList.ItemsSource = _ramProcesses;
-
-        Loaded += async (_, _) =>
-        {
-            await LoadDefenderStatusAsync();
-        };
+        Loaded += async (_, _) => await LoadDefenderStatusAsync();
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // NAVIGATION PAR ONGLETS
-    // ─────────────────────────────────────────────────────────────────────────
+    private static Brush B(string k) => ThemeManager.GetBrush(k);
+    private static TextBlock T(string text, double size, string brush, FontWeight? w = null, bool wrap = false) => new()
+    { Text = text, FontSize = size, Foreground = B(brush), FontWeight = w ?? FontWeights.Normal, TextWrapping = wrap ? TextWrapping.Wrap : TextWrapping.NoWrap, TextTrimming = wrap ? TextTrimming.None : TextTrimming.CharacterEllipsis };
+
     private async void TabButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button btn) return;
         string tag = btn.Tag?.ToString() ?? "";
-
-        BtnTabDefender.Background = _brushTabInactive;
-        BtnTabDefender.Foreground = _brushTextInactive;
-        BtnTabEvents.Background = _brushTabInactive;
-        BtnTabEvents.Foreground = _brushTextInactive;
-        BtnTabRam.Background = _brushTabInactive;
-        BtnTabRam.Foreground = _brushTextInactive;
-
-        btn.Background = _brushTabActive;
-        btn.Foreground = _brushTextActive;
-
-        PanelDefender.Visibility = (tag == "TabDefender") ? Visibility.Visible : Visibility.Collapsed;
-        PanelEvents.Visibility   = (tag == "TabEvents")   ? Visibility.Visible : Visibility.Collapsed;
-        PanelRam.Visibility      = (tag == "TabRam")      ? Visibility.Visible : Visibility.Collapsed;
-
-        if (tag == "TabEvents" && _events.Count == 0)
-        {
-            await LoadCriticalEventsAsync();
-        }
-        else if (tag == "TabRam" && _ramProcesses.Count == 0)
-        {
-            await LoadRamProcessesAsync();
-        }
+        foreach (var b in new[] { BtnTabDefender, BtnTabEvents, BtnTabRam })
+            b.SetResourceReference(StyleProperty, b == btn ? "PrimaryActionButton" : "ActionButton");
+        PanelDefender.Visibility = tag == "TabDefender" ? Visibility.Visible : Visibility.Collapsed;
+        PanelEvents.Visibility = tag == "TabEvents" ? Visibility.Visible : Visibility.Collapsed;
+        PanelRam.Visibility = tag == "TabRam" ? Visibility.Visible : Visibility.Collapsed;
+        if (tag == "TabEvents" && !_eventsLoaded) await LoadCriticalEventsAsync();
+        else if (tag == "TabRam" && !_ramLoaded) await LoadRamProcessesAsync();
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // ONGLET 1 : PROTECTION DEFENDER
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─── Protection ──────────────────────────────────────────────────────────────
+
     private async Task LoadDefenderStatusAsync()
     {
-        TxtFeedback.Text = "Interrogation de Windows Defender...";
-        TxtRealtimeStatus.Text = "Vérification...";
-        BadgeRealtime.Background = (SolidColorBrush)ThemeManager.GetBrush("TextMuted");
-        TxtSignaturesDate.Text = "Lecture...";
-        TxtEngineVersion.Text = "Lecture...";
-        TxtScanStatus.Text = "Lecture...";
-
+        TxtFeedback.Text = "Vérification des protections…";
         try
         {
-            string ps = @"
-try {
-    $def = Get-MpComputerStatus -ErrorAction Stop
-    [PSCustomObject]@{
-        RealTime = $def.RealTimeProtectionEnabled
-        Signatures = $def.AntivirusSignatureLastUpdated.ToString('dd/MM/yyyy HH:mm')
-        Engine = $def.AMEngineVersion
-        Overdue = $def.QuickScanOverdue
-        Available = $true
-    } | ConvertTo-Json -Compress
-} catch {
-    [PSCustomObject]@{ Available = $false } | ConvertTo-Json -Compress
-}
-";
-            string json = await PowerShellRunner.RunAsync(ps, _ct);
-            json = json.Trim();
-
-            if (!string.IsNullOrWhiteSpace(json) && json.StartsWith("{"))
-            {
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-                bool available = root.TryGetProperty("Available", out var av) && av.GetBoolean();
-
-                if (available)
-                {
-                    bool rt = root.TryGetProperty("RealTime", out var r) && r.GetBoolean();
-                    string sigs = root.TryGetProperty("Signatures", out var s) ? s.GetString() ?? "—" : "—";
-                    string eng = root.TryGetProperty("Engine", out var eg) ? eg.GetString() ?? "—" : "—";
-                    bool overdue = root.TryGetProperty("Overdue", out var od) && od.GetBoolean();
-
-                    TxtRealtimeStatus.Text = rt ? "ACTIVÉE (Protégé)" : "DÉSACTIVÉE (Risque)";
-                    BadgeRealtime.Background = rt ? _brushSuccess : _brushError;
-                    TxtSignaturesDate.Text = sigs;
-                    TxtEngineVersion.Text = eng;
-                    TxtScanStatus.Text = overdue ? "Analyse recommandée (en retard)" : "Système analysé récemment";
-
-                    TxtFeedback.Text = "État Windows Defender actualisé.";
-                }
-                else
-                {
-                    TxtRealtimeStatus.Text = "Non accessible";
-                    BadgeRealtime.Background = _brushError;
-                    TxtFeedback.Text = "Defender est géré par un tiers ou désactivé.";
-                }
-            }
+            var checks = await SecurityAuditService.AuditAsync(_ct);
+            var important = checks.Where(c => c.Important && c.Ok != null).ToList();
+            int ok = important.Count(c => c.Ok == true), bad = important.Count - ok;
+            TxtScore.Text = bad == 0 ? $"Bien protégé : {ok}/{important.Count} protections actives." : $"{bad} point(s) à corriger sur {important.Count}.";
+            TxtScore.Foreground = B(bad == 0 ? "SuccessText" : bad <= 2 ? "WarningText" : "DangerText");
+            TxtScoreDetail.Text = bad == 0 ? "Antivirus, pare-feu et protections de Windows sont actifs." : "Cliquez sur « Corriger » à côté de chaque point en rouge.";
+            TxtScoreDetail.Foreground = B("TextSecondary");
+            PanelChecks.Children.Clear();
+            foreach (var c in checks.OrderBy(c => c.Ok == false ? 0 : c.Ok == null ? 2 : 1)) PanelChecks.Children.Add(BuildCheck(c));
+            TxtFeedback.Text = $"Bilan fait à {DateTime.Now:HH:mm}.";
+            _onOutput(bad == 0 ? $"[OK] Bilan de sécurité : {ok}/{important.Count} protections actives." : $"[!] Bilan de sécurité : {bad} point(s) à corriger.");
         }
-        catch (Exception ex)
-        {
-            TxtFeedback.Text = $"Erreur Defender : {ex.Message}";
-        }
+        catch (Exception ex) { TxtScore.Text = "Bilan impossible."; TxtFeedback.Text = ex.Message; }
     }
 
-    private async void BtnRefreshDefender_Click(object sender, RoutedEventArgs e)
+    private Border BuildCheck(SecurityCheck c)
     {
-        await LoadDefenderStatusAsync();
+        var g = new Grid();
+        g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        g.ColumnDefinitions.Add(new ColumnDefinition());
+        g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var (glyph, brush) = c.Ok switch { true => ("", "SuccessText"), false => ("", c.Important ? "DangerText" : "WarningText"), _ => ("", "TextMuted") };
+        g.Children.Add(new TextBlock { Text = glyph, FontFamily = (FontFamily)FindResource("FontIcon"), FontSize = 16, Foreground = B(brush), Margin = new Thickness(0, 2, 12, 0), VerticalAlignment = VerticalAlignment.Top });
+        var info = new StackPanel { Margin = new Thickness(0, 0, 12, 0) };
+        info.Children.Add(T(c.Title, 13, "TextPrimary", FontWeights.SemiBold));
+        info.Children.Add(T(c.Detail, 11.5, c.Ok == false ? brush : "TextSecondary", wrap: true));
+        Grid.SetColumn(info, 1); g.Children.Add(info);
+        if (c.Ok == false && c.FixLabel.Length > 0)
+        {
+            var btn = new Button { Content = c.FixLabel, VerticalAlignment = VerticalAlignment.Center, MinWidth = 96 };
+            btn.SetResourceReference(StyleProperty, "PrimaryActionButton");
+            btn.Click += async (_, _) => await FixAsync(c, btn);
+            Grid.SetColumn(btn, 2); g.Children.Add(btn);
+        }
+        return new Border { Child = g, Padding = new Thickness(6, 10, 6, 10), BorderBrush = B("Border"), BorderThickness = new Thickness(0, 0, 0, 1) };
     }
 
+    private async Task FixAsync(SecurityCheck c, Button btn)
+    {
+        switch (c.Id)
+        {
+            case "tamper" or "smartscreen" or "third": CommandRunner.StartProcess("windowsdefender://threatsettings"); return;
+            case "scan": BtnQuickScan_Click(this, new RoutedEventArgs()); return;
+            case "wu": new SystemIntegrityDialog(_onOutput, _ct) { Owner = this }.ShowDialog(); await LoadDefenderStatusAsync(); return;
+        }
+        if (_busy) return;
+        _busy = true; btn.IsEnabled = false;
+        TxtFeedback.Text = $"Correction : {c.Title}…";
+        try
+        {
+            string msg = await SecurityAuditService.FixAsync(c.Id, _ct);
+            _onOutput(msg.Length == 0 || msg.Contains("redémarrez") ? $"[OK] {c.Title} : corrigé. {msg}" : $"❌ [ERREUR] {c.Title} : {msg}");
+            await LoadDefenderStatusAsync();
+            if (msg.Length > 0) TxtFeedback.Text = msg;
+        }
+        finally { _busy = false; }
+    }
+
+    private async void BtnRefreshDefender_Click(object sender, RoutedEventArgs e) => await LoadDefenderStatusAsync();
+
+    /// <summary>Analyses, signatures et menaces : outil dédié (évite le doublon et les sorties en vrac dans le journal).</summary>
     private async void BtnQuickScan_Click(object sender, RoutedEventArgs e)
     {
-        TxtFeedback.Text = "Scan rapide Defender lancé (voir console)...";
-        await SecurityService.DefenderQuickScan(_onOutput, _ct);
-        TxtFeedback.Text = "Scan rapide terminé.";
+        new DefenderScanDialog(_onOutput, _ct) { Owner = this }.ShowDialog();
         await LoadDefenderStatusAsync();
     }
 
-    private async void BtnUpdateSigs_Click(object sender, RoutedEventArgs e)
-    {
-        TxtFeedback.Text = "Mise à jour des signatures Defender...";
-        await SecurityService.UpdateDefender(_onOutput, _ct);
-        TxtFeedback.Text = "Signatures antivirus mises à jour.";
-        await LoadDefenderStatusAsync();
-    }
+    private void BtnEicar_Click(object sender, RoutedEventArgs e) => new AntivirusTestDialog(_onOutput, _ct) { Owner = this }.ShowDialog();
+    private void BtnOpenWindowsSecurity_Click(object sender, RoutedEventArgs e) => CommandRunner.StartProcess("windowsdefender:");
 
-    private async void BtnThreats_Click(object sender, RoutedEventArgs e)
-    {
-        TxtFeedback.Text = "Recherche des menaces détectées...";
-        await SecurityService.GetDefenderThreats(_onOutput, _ct);
-        TxtFeedback.Text = "Historique des menaces affiché dans la console.";
-    }
+    // ─── Incidents ───────────────────────────────────────────────────────────────
 
-    /// <summary>Test de l'antivirus avec faux virus (EICAR, archive, AMSI) et vérification de sa réaction.</summary>
-    private void BtnEicar_Click(object sender, RoutedEventArgs e)
-        => new AntivirusTestDialog(_onOutput, _ct) { Owner = this }.ShowDialog();
-
-    private void BtnOpenWindowsSecurity_Click(object sender, RoutedEventArgs e)
-    {
-        CommandRunner.StartProcess("windowsdefender:");
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // ONGLET 2 : ERREURS & PLANTAGES (BSOD)
-    // ─────────────────────────────────────────────────────────────────────────
     private async Task LoadCriticalEventsAsync()
     {
-        TxtFeedback.Text = "Analyse du journal des erreurs Windows...";
-        _events.Clear();
-        TxtEventsCount.Text = "Recherche en cours...";
-
+        TxtEventsCount.Text = "Lecture des journaux de Windows…";
+        PanelIncidents.Children.Clear();
         try
         {
-            string ps = @"
-$since = (Get-Date).AddDays(-1)
-$events = Get-WinEvent -FilterHashtable @{
-    LogName   = 'System','Application'
-    Level     = 1,2
-    StartTime = $since
-} -MaxEvents 25 -ErrorAction SilentlyContinue
-
-$list = foreach ($e in $events) {
-    [PSCustomObject]@{
-        Time     = $e.TimeCreated.ToString('dd/MM HH:mm')
-        Provider = $e.ProviderName
-        Message  = ($e.Message -replace '\r?\n', ' ')
-    }
-}
-$list | ConvertTo-Json -Compress
-";
-            string json = await PowerShellRunner.RunAsync(ps, _ct);
-            json = json.Trim();
-
-            if (!string.IsNullOrWhiteSpace(json))
+            var groups = await SecurityAuditService.GetIncidentsAsync(_ct);
+            _eventsLoaded = true;
+            int serious = groups.Where(g => g.Level == "Danger").Sum(g => g.Count);
+            TxtEventsCount.Text = groups.Count == 0 ? "Aucune erreur enregistrée ces 7 derniers jours."
+                : serious > 0 ? $"{serious} incident(s) grave(s) et {groups.Sum(g => g.Count) - serious} autre(s) erreur(s) en 7 jours."
+                : $"Aucun incident grave ; {groups.Sum(g => g.Count)} erreur(s) mineure(s) en 7 jours.";
+            TxtEventsCount.Foreground = B(serious > 0 ? "DangerText" : "SuccessText");
+            foreach (var g in groups)
             {
-                if (json.StartsWith("["))
-                {
-                    using var doc = JsonDocument.Parse(json);
-                    foreach (var el in doc.RootElement.EnumerateArray())
-                    {
-                        _events.Add(new CriticalEventItem
-                        {
-                            Time = el.GetProperty("Time").GetString() ?? "",
-                            Provider = el.GetProperty("Provider").GetString() ?? "Système",
-                            Message = el.GetProperty("Message").GetString() ?? ""
-                        });
-                    }
-                }
-                else if (json.StartsWith("{"))
-                {
-                    using var doc = JsonDocument.Parse(json);
-                    var el = doc.RootElement;
-                    _events.Add(new CriticalEventItem
-                    {
-                        Time = el.GetProperty("Time").GetString() ?? "",
-                        Provider = el.GetProperty("Provider").GetString() ?? "Système",
-                        Message = el.GetProperty("Message").GetString() ?? ""
-                    });
-                }
+                var grid = new Grid();
+                grid.ColumnDefinitions.Add(new ColumnDefinition());
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                var info = new StackPanel { Margin = new Thickness(0, 0, 12, 0) };
+                info.Children.Add(T(g.Title, 13, g.Level switch { "Danger" => "DangerText", "Warning" => "WarningText", _ => "TextPrimary" }, FontWeights.SemiBold));
+                info.Children.Add(T(g.Explanation, 11.5, "TextSecondary", wrap: true));
+                var sample = T(g.Sample, 11, "TextMuted"); sample.ToolTip = g.Sample; info.Children.Add(sample);
+                grid.Children.Add(info);
+                var right = new StackPanel { HorizontalAlignment = HorizontalAlignment.Right };
+                right.Children.Add(T($"{g.Count} fois", 13, "TextPrimary", FontWeights.SemiBold));
+                right.Children.Add(T($"dernier : {g.Last:dd/MM HH:mm}", 11, "TextMuted"));
+                Grid.SetColumn(right, 1); grid.Children.Add(right);
+                PanelIncidents.Children.Add(new Border { Child = grid, Padding = new Thickness(6, 10, 6, 10), BorderBrush = B("Border"), BorderThickness = new Thickness(0, 0, 0, 1) });
             }
-
-            TxtEventsCount.Text = _events.Count > 0 
-                ? $"{_events.Count} événement(s) critique(s) sur les dernières 24h"
-                : "Aucune erreur critique détectée sur les dernières 24h [Sain]";
-            TxtFeedback.Text = "Analyse des événements terminée.";
-            _onOutput($"[OK] Journal des erreurs : {_events.Count} incident(s) répertorié(s)");
+            _onOutput($"[OK] Incidents des 7 derniers jours : {groups.Sum(g => g.Count)} ({serious} grave(s)).");
         }
-        catch (Exception ex)
-        {
-            TxtEventsCount.Text = "Erreur lors de la lecture des événements.";
-            TxtFeedback.Text = ex.Message;
-        }
+        catch (Exception ex) { TxtEventsCount.Text = "Lecture des journaux impossible."; TxtFeedback.Text = ex.Message; }
     }
 
-    private async void BtnRefreshEvents_Click(object sender, RoutedEventArgs e)
-    {
-        await LoadCriticalEventsAsync();
-    }
+    private async void BtnRefreshEvents_Click(object sender, RoutedEventArgs e) => await LoadCriticalEventsAsync();
+    private void BtnPerfmon_Click(object sender, RoutedEventArgs e) => CommandRunner.StartProcess("perfmon", "/rel");
+    private void BtnEventvwr_Click(object sender, RoutedEventArgs e) => CommandRunner.StartProcess("eventvwr.msc");
 
-    private void BtnPerfmon_Click(object sender, RoutedEventArgs e)
-    {
-        CommandRunner.StartProcess("perfmon", "/rel");
-    }
+    // ─── Mémoire ─────────────────────────────────────────────────────────────────
 
-    private void BtnEventvwr_Click(object sender, RoutedEventArgs e)
-    {
-        CommandRunner.StartProcess("eventvwr.msc");
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // ONGLET 3 : TOP PROCESSUS & CHARGE RAM
-    // ─────────────────────────────────────────────────────────────────────────
     private async Task LoadRamProcessesAsync()
     {
-        TxtFeedback.Text = "Analyse des processus et de la charge mémoire...";
-        _ramProcesses.Clear();
-        TxtRamTotalUsage.Text = "Mesure de la charge RAM...";
-
+        TxtRamTotalUsage.Text = "Mesure de la mémoire…";
+        PanelMemory.Children.Clear();
         try
         {
-            string ps = @"
-$os = Get-CimInstance Win32_OperatingSystem
-$totalMb = [math]::Round($os.TotalVisibleMemorySize / 1024, 0)
-$freeMb  = [math]::Round($os.FreePhysicalMemory / 1024, 0)
-$usedMb  = $totalMb - $freeMb
-$pct     = [math]::Round(($usedMb / $totalMb) * 100, 1)
-
-$procs = Get-Process | Sort-Object WorkingSet64 -Descending | Select-Object -First 15
-$list = foreach ($p in $procs) {
-    [PSCustomObject]@{
-        Name     = ""$($p.ProcessName).exe""
-        Pid      = $p.Id
-        MemoryMb = [math]::Round($p.WorkingSet64 / 1MB, 1)
-    }
-}
-
-[PSCustomObject]@{
-    TotalMb   = $totalMb
-    UsedMb    = $usedMb
-    Percent   = $pct
-    Processes = $list
-} | ConvertTo-Json -Compress
-";
-            string json = await PowerShellRunner.RunAsync(ps, _ct);
-            json = json.Trim();
-
-            if (!string.IsNullOrWhiteSpace(json) && json.StartsWith("{"))
+            var (used, total, top) = await SecurityAuditService.GetMemoryAsync(_ct);
+            _ramLoaded = true;
+            double pct = total > 0 ? used * 100 / total : 0;
+            TxtRamTotalUsage.Text = $"{used:0.0} Go utilisés sur {total:0.0} Go ({pct:0} %)" + (pct > 85 ? " : mémoire presque pleine, le PC ralentit." : "");
+            BarRam.ColumnDefinitions[0].Width = new GridLength(pct, GridUnitType.Star);
+            BarRam.ColumnDefinitions[1].Width = new GridLength(100 - pct, GridUnitType.Star);
+            BarRamFill.Background = B(pct > 85 ? "Danger" : pct > 70 ? "Warning" : "Accent");
+            double max = top.Count > 0 ? top.Max(t => t.MegaBytes) : 1;
+            foreach (var m in top)
             {
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-
-                double usedMb = root.TryGetProperty("UsedMb", out var u) ? u.GetDouble() : 0;
-                double totalMb = root.TryGetProperty("TotalMb", out var t) ? t.GetDouble() : 0;
-                double pct = root.TryGetProperty("Percent", out var p) ? p.GetDouble() : 0;
-
-                TxtRamTotalUsage.Text = $"{(usedMb / 1024):F1} Go / {(totalMb / 1024):F1} Go utilisés ({pct} % de charge)";
-
-                if (root.TryGetProperty("Processes", out var pArray) && pArray.ValueKind == JsonValueKind.Array)
-                {
-                    int rank = 1;
-                    foreach (var el in pArray.EnumerateArray())
-                    {
-                        _ramProcesses.Add(new RamProcessItem
-                        {
-                            Rank = rank++,
-                            Name = el.GetProperty("Name").GetString() ?? "",
-                            Pid = el.GetProperty("Pid").GetInt32(),
-                            MemoryMb = el.GetProperty("MemoryMb").GetDouble()
-                        });
-                    }
-                }
-
-                TxtFeedback.Text = "Top 15 processus RAM chargé.";
-                _onOutput($"[OK] Charge mémoire : {(usedMb / 1024):F1} Go / {(totalMb / 1024):F1} Go ({pct} %)");
+                var g = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(240) });
+                g.ColumnDefinitions.Add(new ColumnDefinition());
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
+                g.Children.Add(T(m.Processes > 1 ? $"{m.Name}  ({m.Processes} processus)" : m.Name, 12.5, "TextPrimary", FontWeights.SemiBold));
+                var bar = new Grid { Height = 6, VerticalAlignment = VerticalAlignment.Center };
+                bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(m.MegaBytes, GridUnitType.Star) });
+                bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Max(0, max - m.MegaBytes), GridUnitType.Star) });
+                bar.Children.Add(new Border { CornerRadius = new CornerRadius(3), Background = B("Accent") });
+                Grid.SetColumn(bar, 1); g.Children.Add(bar);
+                var v = T(m.MegaBytes >= 1024 ? $"{m.MegaBytes / 1024:0.0} Go" : $"{m.MegaBytes:0} Mo", 12.5, "TextPrimary");
+                v.HorizontalAlignment = HorizontalAlignment.Right;
+                Grid.SetColumn(v, 2); g.Children.Add(v);
+                PanelMemory.Children.Add(g);
             }
+            _onOutput($"[OK] Mémoire : {used:0.0} Go / {total:0.0} Go ({pct:0} %).");
         }
-        catch (Exception ex)
-        {
-            TxtRamTotalUsage.Text = "Erreur lecture RAM";
-            TxtFeedback.Text = ex.Message;
-        }
+        catch (Exception ex) { TxtRamTotalUsage.Text = "Mesure impossible."; TxtFeedback.Text = ex.Message; }
     }
 
-    private async void BtnRefreshRam_Click(object sender, RoutedEventArgs e)
-    {
-        await LoadRamProcessesAsync();
-    }
-
-    private void BtnTaskMgr_Click(object sender, RoutedEventArgs e)
-    {
-        CommandRunner.StartProcess("taskmgr");
-    }
-
+    private async void BtnRefreshRam_Click(object sender, RoutedEventArgs e) => await LoadRamProcessesAsync();
+    private void BtnTaskMgr_Click(object sender, RoutedEventArgs e) => CommandRunner.StartProcess("taskmgr");
     private void BtnClose_Click(object sender, RoutedEventArgs e) => Close();
 }

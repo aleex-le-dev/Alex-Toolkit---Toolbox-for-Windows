@@ -1,0 +1,53 @@
+<Window xmlns:ui="http://schemas.modernwpf.com/2019" ui:WindowHelper.UseModernWindowStyle="True"
+        x:Class="ScriptsWindows.Views.Controls.DiskOptimizeDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Optimiser les disques"
+        Width="820" Height="520" WindowStartupLocation="CenterOwner" ResizeMode="CanResize" MinWidth="700" MinHeight="440"
+        Background="{DynamicResource BgDeep}" Foreground="{DynamicResource TextPrimary}" FontFamily="{StaticResource FontMain}">
+    <Grid Margin="24">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" Margin="0,0,0,14">
+            <Border Width="40" Height="40" CornerRadius="8" Background="{DynamicResource AccentDim}" Margin="0,0,14,0">
+                <TextBlock Text="&#xE9F5;" FontFamily="{StaticResource FontIcon}" FontSize="18" Foreground="{DynamicResource AccentText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Optimiser les disques" FontFamily="{StaticResource FontDisplay}" FontSize="19" FontWeight="SemiBold"/>
+                <TextBlock Text="SSD : TRIM (garde les performances d'écriture, ne JAMAIS défragmenter un SSD). Disque dur : défragmentation. L'opération adaptée est choisie automatiquement."
+                           Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+        </DockPanel>
+
+        <Border Grid.Row="1" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="16,10" Margin="0,0,0,12">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" x:Name="BtnSchedule" Style="{StaticResource ActionButton}" Click="BtnSchedule_Click"/>
+                <TextBlock x:Name="TxtSchedule" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0"/>
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="2" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="6">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="PanelVolumes" Margin="8,4"/></ScrollViewer>
+        </Border>
+
+        <Border Grid.Row="3" x:Name="PanelProgress" Visibility="Collapsed" Margin="0,12,0,0" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Accent}" BorderThickness="1" CornerRadius="8" Padding="16,12">
+            <StackPanel>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" x:Name="TxtPct" FontFamily="{StaticResource FontDisplay}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource AccentText}"/>
+                    <TextBlock x:Name="TxtStep" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                </DockPanel>
+                <Border Height="8" CornerRadius="4" Background="{DynamicResource BgInput}" Margin="0,10,0,0" ClipToBounds="True">
+                    <Grid x:Name="BarProgress"><Grid.ColumnDefinitions><ColumnDefinition Width="0*"/><ColumnDefinition Width="100*"/></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" CornerRadius="4" Background="{DynamicResource Accent}"/></Grid>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <DockPanel Grid.Row="4" Margin="0,14,0,0">
+            <Button DockPanel.Dock="Right" Content="Fermer" Style="{StaticResource ActionButton}" Click="BtnClose_Click"/>
+            <Button DockPanel.Dock="Right" x:Name="BtnCancel" Content="Arrêter" Style="{StaticResource DangerActionButton}" Margin="0,0,8,0" Visibility="Collapsed" Click="BtnCancel_Click"/>
+            <Button DockPanel.Dock="Right" Content="Outil Windows" Style="{StaticResource ActionButton}" Margin="0,0,8,0" Click="BtnDfrgui_Click"/>
+            <TextBlock x:Name="TxtStatus" Foreground="{DynamicResource TextSecondary}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+        </DockPanel>
+    </Grid>
+</Window>

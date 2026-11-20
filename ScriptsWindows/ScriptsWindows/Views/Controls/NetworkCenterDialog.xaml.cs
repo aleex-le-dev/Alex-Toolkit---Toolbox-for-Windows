@@ -1,4 +1,4 @@
-using System.Net.NetworkInformation;
+﻿using System.Net.NetworkInformation;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -28,13 +28,14 @@ public partial class NetworkCenterDialog : UserControl
         InitializeComponent();
         _onOutput = onOutput;
         _ct = ct;
+        DnsPanel.Init(onOutput, ct);   // l'onglet DNS se charge à sa première ouverture
+        DnsPanel.Changed += async () => await LoadDiagnosticsAsync();
 
         Loaded += async (_, _) =>
         {
             if (_booted) return;
             _booted = true;
-            // Indépendants : lancés en parallèle (2 processus PowerShell simultanés au lieu de successifs)
-            await Task.WhenAll(LoadDiagnosticsAsync(), LoadDnsAdaptersAsync());
+            await LoadDiagnosticsAsync();
         };
     }
 
@@ -196,164 +197,6 @@ if ($inetT) { $inetOk = $true }
         TxtFeedback.Text = "Exécution du triage dans la console...";
         await NetworkService.RunTriage(_onOutput, _ct);
         TxtFeedback.Text = "Triage réseau affiché dans la console.";
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // ONGLET 2 : GESTIONNAIRE DNS
-    // ─────────────────────────────────────────────────────────────────────────
-    private async Task LoadDnsAdaptersAsync()
-    {
-        CmbDnsAdapters.Items.Clear();
-        try
-        {
-            string ps = @"
-Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | Select-Object Name, InterfaceDescription, Status | ConvertTo-Json
-";
-            string json = await PowerShellRunner.RunAsync(ps, _ct);
-            json = json.Trim();
-
-            if (!string.IsNullOrWhiteSpace(json))
-            {
-                if (json.StartsWith("["))
-                {
-                    using var doc = JsonDocument.Parse(json);
-                    foreach (var el in doc.RootElement.EnumerateArray())
-                    {
-                        CmbDnsAdapters.Items.Add(new NetworkAdapterDnsItem
-                        {
-                            Name = el.GetProperty("Name").GetString() ?? "",
-                            InterfaceDescription = el.GetProperty("InterfaceDescription").GetString() ?? "",
-                            Status = el.GetProperty("Status").GetString() ?? ""
-                        });
-                    }
-                }
-                else if (json.StartsWith("{"))
-                {
-                    using var doc = JsonDocument.Parse(json);
-                    var el = doc.RootElement;
-                    CmbDnsAdapters.Items.Add(new NetworkAdapterDnsItem
-                    {
-                        Name = el.GetProperty("Name").GetString() ?? "",
-                        InterfaceDescription = el.GetProperty("InterfaceDescription").GetString() ?? "",
-                        Status = el.GetProperty("Status").GetString() ?? ""
-                    });
-                }
-            }
-
-            if (CmbDnsAdapters.Items.Count > 0)
-            {
-                CmbDnsAdapters.SelectedIndex = 0;
-            }
-        }
-        catch (Exception ex)
-        {
-            TxtFeedback.Text = $"Erreur adaptateurs DNS : {ex.Message}";
-        }
-    }
-
-    private async void CmbDnsAdapters_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        await RefreshSelectedAdapterDnsAsync();
-    }
-
-    private async void BtnDnsRefresh_Click(object sender, RoutedEventArgs e)
-    {
-        await LoadDnsAdaptersAsync();
-    }
-
-    private async Task RefreshSelectedAdapterDnsAsync()
-    {
-        if (CmbDnsAdapters.SelectedItem is not NetworkAdapterDnsItem adapter) return;
-
-        TxtDnsCurrentVal.Text = "Lecture...";
-        TxtDnsCurrentIp.Text = "Lecture...";
-
-        try
-        {
-            string ps = $@"
-$alias = '{adapter.Name}'
-$dns = (Get-DnsClientServerAddress -InterfaceAlias $alias -AddressFamily IPv4 -ErrorAction SilentlyContinue).ServerAddresses -join ', '
-$ip = (Get-NetIPAddress -InterfaceAlias $alias -AddressFamily IPv4 -ErrorAction SilentlyContinue | Select-Object -First 1).IPAddress
-[PSCustomObject]@{{
-    Dns = if ($dns) {{ $dns }} else {{ 'Automatique (DHCP)' }}
-    Ip = if ($ip) {{ $ip }} else {{ '—' }}
-}} | ConvertTo-Json -Compress
-";
-            string json = await PowerShellRunner.RunAsync(ps, _ct);
-            json = json.Trim();
-
-            if (!string.IsNullOrWhiteSpace(json) && json.StartsWith("{"))
-            {
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-                if (root.TryGetProperty("Dns", out var d)) TxtDnsCurrentVal.Text = d.GetString() ?? "Automatique";
-                if (root.TryGetProperty("Ip", out var ip)) TxtDnsCurrentIp.Text = ip.GetString() ?? "—";
-            }
-        }
-        catch (Exception ex)
-        {
-            TxtDnsCurrentVal.Text = "Erreur lecture";
-            TxtFeedback.Text = ex.Message;
-        }
-    }
-
-    private async Task ApplyDnsAsync(string primaryDns, string secondaryDns, string providerName)
-    {
-        if (CmbDnsAdapters.SelectedItem is not NetworkAdapterDnsItem adapter) return;
-
-        _onOutput($"\n[i] Configuration DNS {providerName} ({primaryDns}, {secondaryDns}) sur '{adapter.Name}'...");
-        TxtFeedback.Text = $"Application DNS {providerName}...";
-
-        try
-        {
-            string ps = $"Set-DnsClientServerAddress -InterfaceAlias '{adapter.Name}' -ServerAddresses ('{primaryDns}','{secondaryDns}')";
-            await PowerShellRunner.RunAsync(ps, _onOutput, _ct);
-            await CommandRunner.RunAsync("ipconfig /flushdns", _onOutput, _ct);
-
-            _onOutput($"[OK] DNS {providerName} appliqués et cache DNS vidé");
-            TxtFeedback.Text = $"DNS {providerName} appliqués.";
-            await RefreshSelectedAdapterDnsAsync();
-            await LoadDiagnosticsAsync();
-        }
-        catch (Exception ex)
-        {
-            _onOutput($"[ERR] Échec : {ex.Message}");
-            TxtFeedback.Text = $"Erreur : {ex.Message}";
-        }
-    }
-
-    private async void BtnApplyCloudflare_Click(object sender, RoutedEventArgs e)
-        => await ApplyDnsAsync("1.1.1.1", "1.0.0.1", "Cloudflare");
-
-    private async void BtnApplyGoogle_Click(object sender, RoutedEventArgs e)
-        => await ApplyDnsAsync("8.8.8.8", "8.8.4.4", "Google");
-
-    private async void BtnApplyQuad9_Click(object sender, RoutedEventArgs e)
-        => await ApplyDnsAsync("9.9.9.9", "149.112.112.112", "Quad9");
-
-    private async void BtnRestoreDhcp_Click(object sender, RoutedEventArgs e)
-    {
-        if (CmbDnsAdapters.SelectedItem is not NetworkAdapterDnsItem adapter) return;
-
-        _onOutput($"\n[i] Restauration DNS automatique (DHCP) sur '{adapter.Name}'...");
-        TxtFeedback.Text = "Restauration DNS DHCP...";
-
-        try
-        {
-            string ps = $"Set-DnsClientServerAddress -InterfaceAlias '{adapter.Name}' -ResetServerAddresses";
-            await PowerShellRunner.RunAsync(ps, _onOutput, _ct);
-            await CommandRunner.RunAsync("ipconfig /flushdns", _onOutput, _ct);
-
-            _onOutput("[OK] DNS DHCP automatique restauré et cache vidé");
-            TxtFeedback.Text = "DNS automatique restauré.";
-            await RefreshSelectedAdapterDnsAsync();
-            await LoadDiagnosticsAsync();
-        }
-        catch (Exception ex)
-        {
-            _onOutput($"[ERR] Échec : {ex.Message}");
-            TxtFeedback.Text = $"Erreur : {ex.Message}";
-        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

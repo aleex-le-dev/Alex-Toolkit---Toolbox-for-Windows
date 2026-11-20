@@ -1,89 +1,75 @@
-<Window xmlns:ui="http://schemas.modernwpf.com/2019" ui:WindowHelper.UseModernWindowStyle="True" x:Class="ScriptsWindows.Views.Controls.ChkdskDialog"
+<Window xmlns:ui="http://schemas.modernwpf.com/2019" ui:WindowHelper.UseModernWindowStyle="True"
+        x:Class="ScriptsWindows.Views.Controls.ChkdskDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Vérification et Réparation de Disque (CHKDSK)"
-        Width="600" Height="520"
-        WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
-        Background="{DynamicResource BgDeep}"
-        Foreground="{DynamicResource TextPrimary}"
-        WindowStyle="SingleBorderWindow">
-
-    <Window.Resources>
-
-    </Window.Resources>
-
+        Title="Vérifier et réparer un disque"
+        Width="880" Height="760" WindowStartupLocation="CenterOwner" ResizeMode="CanResize" MinWidth="740" MinHeight="580"
+        Background="{DynamicResource BgDeep}" Foreground="{DynamicResource TextPrimary}" FontFamily="{StaticResource FontMain}">
     <Grid Margin="24">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- En-tête -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,18">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="🛠️" FontSize="24" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                <TextBlock Text="Vérification et Réparation CHKDSK" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource TextPrimary}" VerticalAlignment="Center"/>
-            </StackPanel>
-            <TextBlock Text="Analysez et réparez les erreurs du système de fichiers et les secteurs défectueux."
-                       Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="34,4,0,0"/>
-        </StackPanel>
-
-        <!-- Sélection du lecteur -->
-        <Border Grid.Row="1" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,16">
-            <StackPanel>
-                <TextBlock Text="Sélectionnez le lecteur à analyser :" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,6"/>
-                <ComboBox x:Name="CmbDrives" Height="36" Background="{DynamicResource BgDeep}" Foreground="{DynamicResource TextPrimary}"
-                          BorderBrush="{DynamicResource BorderStrong}" SelectionChanged="CmbDrives_SelectionChanged"/>
-                <TextBlock x:Name="TxtDriveDirtyStatus" Text="État : Vérification en cours..." Foreground="{DynamicResource TextSecondary}" FontSize="11" Margin="0,6,0,0"/>
-            </StackPanel>
-        </Border>
-
-        <!-- Choix du mode d'analyse -->
-        <Border Grid.Row="2" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,16">
+        <DockPanel Grid.Row="0" Margin="0,0,0,14">
+            <Border Width="40" Height="40" CornerRadius="8" Background="{DynamicResource AccentDim}" Margin="0,0,14,0">
+                <TextBlock Text="&#xEDA2;" FontFamily="{StaticResource FontIcon}" FontSize="18" Foreground="{DynamicResource AccentText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
             <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="MODE D'ANALYSE" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource TextSecondary}" Margin="0,0,0,12"/>
+                <TextBlock Text="Vérifier et réparer un disque (CHKDSK)" FontFamily="{StaticResource FontDisplay}" FontSize="19" FontWeight="SemiBold"/>
+                <TextBlock Text="Analyse sans redémarrer, puis réparation si besoin : immédiate sur un disque de données, au prochain redémarrage sur le disque de Windows."
+                           Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+        </DockPanel>
 
-                <RadioButton x:Name="RbReadOnly" IsChecked="True" Margin="0,0,0,12" GroupName="ChkdskMode">
-                    <StackPanel Margin="6,0,0,0">
-                        <TextBlock Text="🔍 Analyse rapide (Lecture seule)" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
-                        <TextBlock Text="Vérifie la cohérence du système de fichiers immédiatement sans bloquer ni redémarrer." Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
-                    </StackPanel>
-                </RadioButton>
-
-                <RadioButton x:Name="RbFix" Margin="0,0,0,12" GroupName="ChkdskMode">
-                    <StackPanel Margin="6,0,0,0">
-                        <TextBlock Text="🔧 Réparation du système de fichiers (/f)" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
-                        <TextBlock Text="Corrige les erreurs de structures et de métadonnées au prochain redémarrage." Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
-                    </StackPanel>
-                </RadioButton>
-
-                <RadioButton x:Name="RbFull" GroupName="ChkdskMode">
-                    <StackPanel Margin="6,0,0,0">
-                        <TextBlock Text="🛡️ Réparation complète et récupération des secteurs (/f /r)" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}"/>
-                        <TextBlock Text="Analyse approfondie de la surface du disque, isole les secteurs défectueux (recommandé si disque lent)." Foreground="{DynamicResource TextSecondary}" FontSize="11"/>
-                    </StackPanel>
-                </RadioButton>
+        <Border Grid.Row="1" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="16,12">
+            <StackPanel>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" x:Name="BtnRefresh" Style="{StaticResource IconButton}" ToolTip="Actualiser" Margin="8,0,0,0" Click="BtnRefresh_Click">
+                        <TextBlock Text="&#xE72C;" FontFamily="{StaticResource FontIcon}" FontSize="14"/>
+                    </Button>
+                    <ComboBox x:Name="CmbDrives" Style="{StaticResource FieldComboBox}" HorizontalAlignment="Stretch" DisplayMemberPath="Display" SelectionChanged="CmbDrives_SelectionChanged"/>
+                </DockPanel>
+                <TextBlock x:Name="TxtDriveDirtyStatus" FontSize="13" FontWeight="SemiBold" Margin="0,10,0,0" TextWrapping="Wrap"/>
+                <TextBlock x:Name="TxtLast" Foreground="{DynamicResource TextMuted}" FontSize="11.5" Margin="0,2,0,10" TextWrapping="Wrap"/>
+                <WrapPanel>
+                    <Button x:Name="BtnScan" Content="Analyser (sans redémarrer)" Style="{StaticResource PrimaryActionButton}" Margin="0,0,8,8" Click="BtnScan_Click"
+                            ToolTip="Lecture seule : rien n'est modifié"/>
+                    <Button x:Name="BtnFix" Content="Réparer les erreurs" Style="{StaticResource ActionButton}" Margin="0,0,8,8" Click="BtnFix_Click"
+                            ToolTip="chkdsk /f (ou Repair-Volume -SpotFix) : quelques minutes"/>
+                    <Button x:Name="BtnFull" Content="Réparation complète (secteurs défectueux)" Style="{StaticResource WarningActionButton}" Margin="0,0,8,8" Click="BtnFull_Click"
+                            ToolTip="chkdsk /f /r : lit toute la surface du disque, de 30 minutes à plusieurs heures"/>
+                    <Button x:Name="BtnCancelSchedule" Content="Annuler la vérification programmée" Style="{StaticResource ActionButton}" Margin="0,0,8,8" Click="BtnCancelSchedule_Click"
+                            ToolTip="chkntfs /x : ne plus vérifier ce disque au prochain démarrage"/>
+                </WrapPanel>
             </StackPanel>
         </Border>
 
-        <!-- Actions -->
-        <Grid Grid.Row="3">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+        <Border Grid.Row="2" x:Name="PanelProgress" Visibility="Collapsed" Margin="0,12,0,0" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Accent}" BorderThickness="1" CornerRadius="8" Padding="16,12">
+            <StackPanel>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" x:Name="TxtPct" FontFamily="{StaticResource FontDisplay}" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource AccentText}"/>
+                    <TextBlock x:Name="TxtStep" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                </DockPanel>
+                <Border Height="8" CornerRadius="4" Background="{DynamicResource BgInput}" Margin="0,10,0,0" ClipToBounds="True">
+                    <Grid x:Name="BarProgress"><Grid.ColumnDefinitions><ColumnDefinition Width="0*"/><ColumnDefinition Width="100*"/></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" CornerRadius="4" Background="{DynamicResource Accent}"/></Grid>
+                </Border>
+            </StackPanel>
+        </Border>
 
-            <TextBlock x:Name="TxtFeedback" Text="" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" FontSize="11"/>
+        <Border Grid.Row="3" x:Name="PanelVerdict" Visibility="Collapsed" Margin="0,12,0,0" CornerRadius="8" Padding="16,12">
+            <TextBlock x:Name="TxtVerdict" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap"/>
+        </Border>
 
-            <Button Grid.Column="1" x:Name="BtnCancelSchedule" Content="❌ Annuler planification" Margin="0,0,10,0"
-                    Style="{StaticResource ActionButton}" Click="BtnCancelSchedule_Click"/>
+        <TextBox Grid.Row="4" x:Name="TxtLog" Margin="0,12,0,0" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                 FontFamily="{StaticResource FontMono}" FontSize="11.5" Background="{DynamicResource BgInput}" Foreground="{DynamicResource TextSecondary}"
+                 BorderBrush="{DynamicResource Border}" BorderThickness="1" Padding="8,6"/>
 
-            <Button Grid.Column="2" x:Name="BtnRunChkdsk" Content="🚀 Lancer / Planifier"
-                    Style="{StaticResource PrimaryActionButton}" Click="BtnRunChkdsk_Click"/>
-        </Grid>
+        <DockPanel Grid.Row="5" Margin="0,14,0,0">
+            <Button DockPanel.Dock="Right" Content="Fermer" Style="{StaticResource ActionButton}" Click="BtnClose_Click"/>
+            <Button DockPanel.Dock="Right" x:Name="BtnCancel" Content="Arrêter" Style="{StaticResource DangerActionButton}" Margin="0,0,8,0" Visibility="Collapsed" Click="BtnCancel_Click"/>
+            <TextBlock x:Name="TxtFeedback" Foreground="{DynamicResource TextSecondary}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+        </DockPanel>
     </Grid>
 </Window>

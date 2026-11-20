@@ -1,146 +1,139 @@
-using System.Windows.Media;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using ScriptsWindows.Core;
+using ScriptsWindows.Services;
 
 namespace ScriptsWindows.Views.Controls;
 
-public class ChkdskDriveItem
-{
-    public string Letter { get; set; } = "";
-    public string Label { get; set; } = "";
-    public string SizeInfo { get; set; } = "";
-
-    public override string ToString()
-    {
-        string labelPart = string.IsNullOrWhiteSpace(Label) ? "" : $" [{Label}]";
-        return $"Lecteur {Letter}:{labelPart} ({SizeInfo})";
-    }
-}
-
+/// <summary>CHKDSK modernisé : état réel des disques, analyse sans redémarrage, réparation au bon moment, verdict (DiskCheckService).</summary>
 public partial class ChkdskDialog : Window
 {
     private readonly Action<string> _onOutput;
     private readonly CancellationToken _ct;
+    private CancellationTokenSource? _runCts;
+    private bool _busy;
 
     public ChkdskDialog(Action<string> onOutput, CancellationToken ct = default)
     {
         InitializeComponent();
-        _onOutput = onOutput;
+        _onOutput = onOutput ?? (_ => { });
         _ct = ct;
-
-        Loaded += (_, _) => LoadDrives();
+        Loaded += async (_, _) => await LoadDrivesAsync();
+        Closing += (_, e) =>
+        {
+            if (!_busy) return;
+            if (AppMessageBox.Show(this, "Une vérification est en cours. L'arrêter et fermer ?", "Vérification en cours", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) e.Cancel = true;
+            else _runCts?.Cancel();
+        };
     }
 
-    private void LoadDrives()
+    private CheckVolume? Selected => CmbDrives.SelectedItem as CheckVolume;
+
+    private async Task LoadDrivesAsync()
     {
-        CmbDrives.Items.Clear();
-        var fixedDrives = DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed && d.IsReady);
-
-        foreach (var d in fixedDrives)
+        char? previous = Selected?.Letter;
+        TxtFeedback.Text = "Lecture des disques…";
+        try
         {
-            string letter = d.Name.TrimEnd('\\').TrimEnd(':');
-            double totalGb = Math.Round(d.TotalSize / (1024.0 * 1024.0 * 1024.0), 1);
-            double freeGb  = Math.Round(d.AvailableFreeSpace / (1024.0 * 1024.0 * 1024.0), 1);
-
-            CmbDrives.Items.Add(new ChkdskDriveItem
-            {
-                Letter = letter,
-                Label = d.VolumeLabel,
-                SizeInfo = $"{freeGb} Go libres sur {totalGb} Go"
-            });
+            var vols = await DiskCheckService.GetVolumesAsync(_ct);
+            CmbDrives.ItemsSource = vols;
+            CmbDrives.SelectedItem = vols.FirstOrDefault(v => v.Letter == previous) ?? vols.FirstOrDefault(v => v.Dirty) ?? vols.FirstOrDefault();
+            TxtFeedback.Text = $"{vols.Count} disque(s). " + (vols.Any(v => v.Dirty) ? "Au moins un disque est marqué comme endommagé." : "");
+            TxtLast.Text = await DiskCheckService.LastResultAsync(_ct);
         }
-
-        if (CmbDrives.Items.Count > 0)
-        {
-            CmbDrives.SelectedIndex = 0;
-        }
+        catch (Exception ex) { TxtFeedback.Text = $"Erreur : {ex.Message}"; }
     }
 
     private async void CmbDrives_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (CmbDrives.SelectedItem is not ChkdskDriveItem item) return;
-
-        TxtDriveDirtyStatus.Text = $"Vérification de l'intégrité de {item.Letter}:...";
-        try
-        {
-            string res = await CommandRunner.RunAsync($"fsutil dirty query {item.Letter}:", _ct);
-            if (res.Contains("NON intègre", StringComparison.OrdinalIgnoreCase) || res.Contains("is dirty", StringComparison.OrdinalIgnoreCase))
-            {
-                TxtDriveDirtyStatus.Text = $"⚠️ Le lecteur {item.Letter}: est marqué comme endommagé (dirty bit actif). Analyse recommandée.";
-                TxtDriveDirtyStatus.Foreground = System.Windows.Media.Brushes.Orange;
-            }
-            else
-            {
-                TxtDriveDirtyStatus.Text = $"✅ Le volume {item.Letter}: est marqué comme intègre par Windows.";
-                TxtDriveDirtyStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
-            }
-        }
-        catch
-        {
-            TxtDriveDirtyStatus.Text = $"État du volume {item.Letter}: prêt pour analyse.";
-            TxtDriveDirtyStatus.Foreground = (SolidColorBrush)ThemeManager.GetBrush("TextSecondary");
-        }
+        if (Selected is not CheckVolume v) return;
+        TxtDriveDirtyStatus.Text = $"{v.Letter}: — {DiskCheckService.HealthLabel(v)}";
+        TxtDriveDirtyStatus.Foreground = ThemeManager.GetBrush(v.Dirty || v.Health == "Unhealthy" ? "DangerText" : v.Health == "Warning" ? "WarningText" : "SuccessText");
+        if (await DiskCheckService.IsScheduledAsync(v.Letter, _ct))
+            TxtDriveDirtyStatus.Text += "  ·  Vérification programmée au prochain démarrage.";
     }
 
-    private async void BtnRunChkdsk_Click(object sender, RoutedEventArgs e)
+    private async void BtnRefresh_Click(object sender, RoutedEventArgs e) { if (!_busy) await LoadDrivesAsync(); }
+
+    private void Log(string line)
     {
-        if (CmbDrives.SelectedItem is not ChkdskDriveItem item) return;
+        _onOutput(line);
+        Dispatcher.BeginInvoke(() => { TxtLog.AppendText($"{DateTime.Now:HH:mm:ss}  {line}{Environment.NewLine}"); TxtLog.ScrollToEnd(); });
+    }
 
-        BtnRunChkdsk.IsEnabled = false;
-        TxtFeedback.Text = "Lancement de la commande CHKDSK...";
+    private void Progress(double pct) => Dispatcher.BeginInvoke(() =>
+    {
+        TxtPct.Text = $"{pct:0} %";
+        BarProgress.ColumnDefinitions[0].Width = new GridLength(pct, GridUnitType.Star);
+        BarProgress.ColumnDefinitions[1].Width = new GridLength(100 - pct, GridUnitType.Star);
+    });
 
-        try
-        {
-            if (RbReadOnly.IsChecked == true)
-            {
-                _onOutput($"\n[i] Lancement de l'analyse en lecture seule sur {item.Letter}: (sans modification)...");
-                await CommandRunner.RunAsync($"chkdsk {item.Letter}:", _onOutput, _ct);
-                _onOutput($"[OK] Analyse en lecture seule sur {item.Letter}: terminée.");
-                TxtFeedback.Text = $"Analyse de {item.Letter}: terminée.";
-            }
-            else if (RbFix.IsChecked == true)
-            {
-                _onOutput($"\n[i] Planification de la réparation des erreurs (CHKDSK /f) sur {item.Letter}:...");
-                await CommandRunner.RunAsync($"echo O | chkdsk {item.Letter}: /f", _onOutput, _ct);
-                _onOutput($"[OK] Réparation programmée sur {item.Letter}: pour le prochain redémarrage.");
-                TxtFeedback.Text = $"Réparation /f programmée sur {item.Letter}: au redémarrage.";
-            }
-            else
-            {
-                _onOutput($"\n[i] Planification de la réparation complète et récupération des secteurs (CHKDSK /f /r) sur {item.Letter}:...");
-                await CommandRunner.RunAsync($"echo O | chkdsk {item.Letter}: /f /r", _onOutput, _ct);
-                _onOutput($"[OK] Scan complet et récupération programmés sur {item.Letter}: pour le prochain redémarrage.");
-                TxtFeedback.Text = $"Scan complet /f /r programmé sur {item.Letter}:.";
-            }
-        }
-        catch (Exception ex)
-        {
-            _onOutput($"[ERR] Échec CHKDSK : {ex.Message}");
-            TxtFeedback.Text = $"Erreur : {ex.Message}";
-        }
+    private void Verdict(string text, string level)
+    {
+        PanelVerdict.Background = ThemeManager.GetBrush(level + "Bg");
+        TxtVerdict.Text = text; TxtVerdict.Foreground = ThemeManager.GetBrush(level + "Text");
+        PanelVerdict.Visibility = Visibility.Visible;
+    }
+
+    private async Task RunAsync(string label, Func<CheckVolume, CancellationToken, Task> work)
+    {
+        if (_busy || Selected is not CheckVolume v) return;
+        _runCts = CancellationTokenSource.CreateLinkedTokenSource(_ct);
+        _busy = true;
+        foreach (var b in new[] { BtnScan, BtnFix, BtnFull, BtnCancelSchedule, BtnRefresh }) b.IsEnabled = false;
+        CmbDrives.IsEnabled = false;
+        BtnCancel.Visibility = Visibility.Visible;
+        PanelProgress.Visibility = Visibility.Visible; PanelVerdict.Visibility = Visibility.Collapsed;
+        TxtStep.Text = $"{label} de {v.Letter}:…"; TxtPct.Text = ""; Progress(0);
+        Log($"🚀 [LANCEMENT] {label} de {v.Letter}:");
+        try { await work(v, _runCts.Token); }
+        catch (OperationCanceledException) { Verdict("Opération arrêtée.", "Warning"); Log("🛑 [ANNULÉ] " + label); }
+        catch (Exception ex) { Verdict($"Erreur : {ex.Message}", "Danger"); Log($"❌ [ERREUR] {label} : {ex.Message}"); }
         finally
         {
-            BtnRunChkdsk.IsEnabled = true;
+            _busy = false;
+            foreach (var b in new[] { BtnScan, BtnFix, BtnFull, BtnCancelSchedule, BtnRefresh }) b.IsEnabled = true;
+            CmbDrives.IsEnabled = true;
+            BtnCancel.Visibility = Visibility.Collapsed; PanelProgress.Visibility = Visibility.Collapsed;
+            await LoadDrivesAsync();
         }
     }
 
-    private async void BtnCancelSchedule_Click(object sender, RoutedEventArgs e)
+    private async void BtnScan_Click(object sender, RoutedEventArgs e) => await RunAsync("Analyse", async (v, ct) =>
     {
-        if (CmbDrives.SelectedItem is not ChkdskDriveItem item) return;
+        var (verdict, msg) = await DiskCheckService.ScanAsync(v, Progress, Log, ct);
+        Verdict($"{v.Letter}: — {msg}", verdict == ScanVerdict.NoErrors ? "Success" : "Warning");
+        Log((verdict == ScanVerdict.NoErrors ? "[OK] " : "[!] ") + $"{v.Letter}: {msg}");
+    });
 
-        _onOutput($"\n[i] Annulation de la planification de vérification au démarrage pour {item.Letter}:...");
-        try
+    private async void BtnFix_Click(object sender, RoutedEventArgs e) => await Repair(full: false);
+    private async void BtnFull_Click(object sender, RoutedEventArgs e) => await Repair(full: true);
+
+    private async Task Repair(bool full)
+    {
+        if (Selected is not CheckVolume v) return;
+        string what = full ? "La réparation complète lit toute la surface du disque : de 30 minutes à plusieurs heures." : "La réparation prend en général quelques minutes.";
+        string when = v.IsSystem ? "C'est le disque de Windows : elle aura lieu au PROCHAIN REDÉMARRAGE (écran noir de vérification, ne pas éteindre)."
+                                 : $"Le disque {v.Letter}: sera brièvement indisponible : fermez les fichiers ouverts dessus.";
+        if (AppMessageBox.Show(this, $"{what}\n\n{when}\n\nContinuer ?", full ? "Réparation complète" : "Réparer les erreurs",
+                MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+        await RunAsync(full ? "Réparation complète" : "Réparation", async (vol, ct) =>
         {
-            await CommandRunner.RunAsync($"chkntfs /d", _onOutput, _ct);
-            _onOutput($"[OK] Planification réinitialisée aux paramètres par défaut (analyse annulée si volume intègre).");
-            TxtFeedback.Text = "Planification CHKDSK réinitialisée.";
-        }
-        catch (Exception ex)
-        {
-            _onOutput($"[ERR] {ex.Message}");
-            TxtFeedback.Text = $"Erreur : {ex.Message}";
-        }
+            string msg = await DiskCheckService.RepairAsync(vol, full, Progress, Log, ct);
+            Verdict($"{vol.Letter}: — {msg}", msg.Contains("restantes") || msg.Contains("n'a pas") ? "Danger" : vol.IsSystem ? "Warning" : "Success");
+            Log($"[i] {vol.Letter}: {msg}");
+        });
     }
+
+    private async void BtnCancelSchedule_Click(object sender, RoutedEventArgs e) => await RunAsync("Annulation de la vérification programmée", async (v, ct) =>
+    {
+        await DiskCheckService.CancelScheduledAsync(v.Letter, ct);
+        bool still = await DiskCheckService.IsScheduledAsync(v.Letter, ct);
+        Verdict(still ? $"{v.Letter}: est marqué comme endommagé : Windows le vérifiera quand même tant qu'il n'est pas réparé."
+                      : $"{v.Letter}: ne sera plus vérifié au prochain démarrage.", still ? "Warning" : "Success");
+        Log($"[i] Vérification programmée de {v.Letter}: annulée.");
+    });
+
+    private void BtnCancel_Click(object sender, RoutedEventArgs e) => _runCts?.Cancel();
+    private void BtnClose_Click(object sender, RoutedEventArgs e) => Close();
 }

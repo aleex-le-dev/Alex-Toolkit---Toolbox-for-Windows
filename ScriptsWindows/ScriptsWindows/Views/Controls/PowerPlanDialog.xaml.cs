@@ -1,174 +1,138 @@
-using System;
-using System.Collections.ObjectModel;
-using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using ScriptsWindows.Core;
+using ScriptsWindows.Services;
 
 namespace ScriptsWindows.Views.Controls;
 
+/// <summary>Alimentation (PowerPlanService) : mode d'alimentation Windows 11, modes de gestion vérifiés, doublons, veille et écran.</summary>
 public partial class PowerPlanDialog : Window
 {
     private readonly Action<string> _onOutput;
     private readonly CancellationToken _ct;
-
-    public class PowerPlanItem
-    {
-        public string Guid { get; set; } = "";
-        public string Name { get; set; } = "";
-        public string Description { get; set; } = "";
-        public string Icon { get; set; } = "⚡";
-        public bool IsActive { get; set; }
-        public Visibility IsActiveVisibility => IsActive ? Visibility.Visible : Visibility.Collapsed;
-        public bool CanActivate => !IsActive;
-    }
-
-    public ObservableCollection<PowerPlanItem> Plans { get; } = new();
+    private PowerState? _state;
+    private bool _busy;
 
     public PowerPlanDialog(Action<string> onOutput, CancellationToken ct = default)
     {
         InitializeComponent();
-        _onOutput = onOutput;
+        _onOutput = onOutput ?? (_ => { });
         _ct = ct;
-        PlansItemsControl.ItemsSource = Plans;
-
-        Loaded += async (s, e) => await LoadPlansAsync();
+        Loaded += async (_, _) => await LoadPlansAsync();
     }
+
+    private static string Min(int m) => m < 0 ? "?" : m == 0 ? "jamais" : m >= 60 && m % 60 == 0 ? $"{m / 60} h" : $"{m} min";
 
     private async Task LoadPlansAsync()
     {
-        TxtStatus.Text = "Lecture des modes d'alimentation Windows...";
-        Plans.Clear();
-
         try
         {
-            string ps = @"
-$output = powercfg /list
-$plans = @()
-foreach ($line in $output) {
-    if ($line -match '([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\s+\(([^)]+)\)') {
-        $guid = $matches[1]
-        $name = $matches[2]
-        $isActive = $line.Contains('*')
-        $plans += [PSCustomObject]@{
-            Guid = $guid
-            Name = $name
-            IsActive = $isActive
-        }
-    }
-}
-$plans | ConvertTo-Json -Compress
-";
-            string json = await PowerShellRunner.RunAsync(ps, _ct);
-            if (!string.IsNullOrWhiteSpace(json))
+            var s = _state = await PowerPlanService.GetStateAsync(_ct);
+            TxtSubtitle.Text = (s.ModernStandby ? "PC à veille moderne : réglez surtout le mode d'alimentation. " : "") + (s.OnBattery ? "Sur batterie actuellement." : "Sur secteur actuellement.");
+
+            foreach (var (btn, mode) in new[] { (BtnModeEff, PowerMode.BestEfficiency), (BtnModeBal, PowerMode.Balanced), (BtnModePerf, PowerMode.BestPerformance) })
+                btn.SetResourceReference(StyleProperty, s.Mode == mode ? "PrimaryActionButton" : "ActionButton");
+            bool customPlan = s.Plans.FirstOrDefault(p => p.Active)?.Id != PowerPlanService.Balanced;
+            TxtMode.Text = s.Mode == PowerMode.Unknown
+                ? (customPlan ? "Indisponible tant qu'un mode de gestion autre que « Utilisation normale » est actif." : "Non communiqué par ce PC.")
+                : $"Actuel : {PowerPlanService.ModeLabel(s.Mode)}.";
+            TxtMode.Foreground = ThemeManager.GetBrush(s.Mode == PowerMode.Unknown ? "TextMuted" : "AccentText");
+
+            PanelPlans.Children.Clear();
+            foreach (var p in s.Plans)
             {
-                using var doc = JsonDocument.Parse(json);
-                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                var g = new Grid { Margin = new Thickness(0, 2, 0, 2) };
+                g.ColumnDefinitions.Add(new ColumnDefinition());
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                g.Children.Add(new TextBlock { Text = p.Name, FontSize = 13, FontWeight = p.Active ? FontWeights.SemiBold : FontWeights.Normal,
+                                               Foreground = ThemeManager.GetBrush(p.Active ? "SuccessText" : "TextPrimary"), VerticalAlignment = VerticalAlignment.Center });
+                if (p.Active)
                 {
-                    string activeName = "Non déterminé";
-                    foreach (var elem in doc.RootElement.EnumerateArray())
-                    {
-                        var guid = elem.GetProperty("Guid").GetString() ?? "";
-                        var name = elem.GetProperty("Name").GetString() ?? "";
-                        var isActive = elem.GetProperty("IsActive").GetBoolean();
-
-                        string icon = "⚡";
-                        string desc = "Mode personnalisé Windows";
-                        string lower = name.ToLowerInvariant();
-
-                        if (lower.Contains("normal") || lower.Contains("équilibré") || lower.Contains("balanced"))
-                        {
-                            icon = "⚖️";
-                            desc = "Équilibre optimal entre réactivité CPU et consommation énergétique.";
-                        }
-                        else if (lower.Contains("haute") || lower.Contains("high") || lower.Contains("élevé"))
-                        {
-                            icon = "🚀";
-                            desc = "Maximise les fréquences du processeur et élimine les bridages de veille.";
-                        }
-                        else if (lower.Contains("ultime") || lower.Contains("ultimate"))
-                        {
-                            icon = "⚡";
-                            desc = "Supprime toute latence et pousse le matériel à son potentiel absolu.";
-                        }
-                        else if (lower.Contains("éco") || lower.Contains("saver"))
-                        {
-                            icon = "🌱";
-                            desc = "Réduit la luminosité et bride le processeur pour préserver la batterie.";
-                        }
-
-                        if (isActive)
-                        {
-                            activeName = name;
-                        }
-
-                        Plans.Add(new PowerPlanItem
-                        {
-                            Guid = guid,
-                            Name = name,
-                            Description = desc,
-                            Icon = icon,
-                            IsActive = isActive
-                        });
-                    }
-
-                    TxtActivePlanBadge.Text = $"{activeName} (Actif)";
+                    var t = new TextBlock { Text = "Actif", FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = ThemeManager.GetBrush("SuccessText"), VerticalAlignment = VerticalAlignment.Center };
+                    Grid.SetColumn(t, 1); g.Children.Add(t);
                 }
+                else
+                {
+                    var b = new Button { Content = "Activer", Tag = p.Id };
+                    b.SetResourceReference(StyleProperty, "ActionButton");
+                    b.Click += async (_, _) => await RunAsync($"Activation de « {p.Name} »", async () =>
+                    {
+                        bool ok = await PowerPlanService.ActivatePlanAsync(p.Id, _ct);
+                        Report(ok, ok ? $"Mode « {p.Name} » activé." : $"Windows n'a pas activé « {p.Name} ».");
+                    });
+                    Grid.SetColumn(b, 1); g.Children.Add(b);
+                }
+                PanelPlans.Children.Add(g);
             }
-
-            TxtStatus.Text = "Prêt.";
+            int dup = s.Plans.GroupBy(p => p.Name, StringComparer.CurrentCultureIgnoreCase).Sum(g => g.Count() - 1);
+            BtnDuplicates.Visibility = dup > 0 ? Visibility.Visible : Visibility.Collapsed;
+            BtnDuplicates.Content = $"Supprimer les {dup} doublon(s)";
+            TxtPlansInfo.Text = s.Plans.Count <= 1 ? "Ce PC ne propose qu'un mode (normal sur les PC récents) : vous pouvez en ajouter un plus rapide, surtout utile sur un PC fixe."
+                              : dup > 0 ? $"{dup} mode(s) en double (souvent créés par d'anciens outils d'optimisation)." : "Le mode actif s'applique immédiatement.";
+            TxtTimeouts.Text = $"Veille : {Min(s.SleepAcMin)} sur secteur, {Min(s.SleepDcMin)} sur batterie  ·  Écran éteint : {Min(s.ScreenAcMin)} sur secteur, {Min(s.ScreenDcMin)} sur batterie";
+            if (!_busy) TxtStatus.Text = "Réglages lus.";
         }
-        catch (Exception ex)
+        catch (Exception ex) { TxtStatus.Text = $"Erreur : {ex.Message}"; }
+    }
+
+    private void Report(bool ok, string msg)
+    {
+        TxtStatus.Text = msg;
+        _onOutput((ok ? "[OK] " : "❌ [ERREUR] ") + msg);
+    }
+
+    private async Task RunAsync(string label, Func<Task> work)
+    {
+        if (_busy) return;
+        _busy = true; TxtStatus.Text = label + "…";
+        try { await work(); }
+        catch (Exception ex) { Report(false, $"{label} : {ex.Message}"); }
+        finally { _busy = false; await LoadPlansAsync(); }
+    }
+
+    private async void BtnMode_Click(object sender, RoutedEventArgs e)
+    {
+        var mode = ((string)((Button)sender).Tag) switch { "eff" => PowerMode.BestEfficiency, "perf" => PowerMode.BestPerformance, _ => PowerMode.Balanced };
+        await RunAsync("Changement du mode d'alimentation", async () =>
         {
-            TxtStatus.Text = $"Erreur lors du chargement : {ex.Message}";
-        }
+            if (_state != null && _state.Plans.FirstOrDefault(p => p.Active)?.Id != PowerPlanService.Balanced)
+                await PowerPlanService.ActivatePlanAsync(PowerPlanService.Balanced, _ct);   // le curseur n'agit qu'avec le mode normal
+            bool ok = PowerPlanService.SetMode(mode);
+            Report(ok, ok ? $"Mode d'alimentation : {PowerPlanService.ModeLabel(mode)}." : "Ce PC n'a pas accepté le changement de mode d'alimentation.");
+        });
     }
 
-    private async void BtnActivatePlan_Click(object sender, RoutedEventArgs e)
+    private async void BtnSetHigh_Click(object sender, RoutedEventArgs e) => await RunAsync("Haute performance", async () =>
     {
-        if (sender is Button btn && btn.Tag is string guid)
-        {
-            await ApplyPlanAsync(guid, "Sélection personnalisée");
-        }
-    }
+        var (ok, msg) = await PowerPlanService.EnablePerformancePlanAsync(false, _ct); Report(ok, msg);
+    });
 
-    private async void BtnSetBalanced_Click(object sender, RoutedEventArgs e)
+    private async void BtnSetUltimate_Click(object sender, RoutedEventArgs e) => await RunAsync("Performances optimales", async () =>
     {
-        // 381b4222-f694-41f0-9685-ff5bb260df2e = Équilibré / Utilisation normale
-        await ApplyPlanAsync("381b4222-f694-41f0-9685-ff5bb260df2e", "Utilisation normale (Équilibré)");
-    }
+        var (ok, msg) = await PowerPlanService.EnablePerformancePlanAsync(true, _ct); Report(ok, msg);
+    });
 
-    private async void BtnSetHigh_Click(object sender, RoutedEventArgs e)
+    private async void BtnDuplicates_Click(object sender, RoutedEventArgs e) => await RunAsync("Suppression des doublons", async () =>
     {
-        // 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c = Haute performance
-        await ApplyPlanAsync("8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", "Haute performance");
-    }
+        int n = await PowerPlanService.RemoveDuplicatesAsync(_ct); Report(true, $"{n} mode(s) en double supprimé(s).");
+    });
 
-    private async void BtnSetUltimate_Click(object sender, RoutedEventArgs e)
+    private async void BtnNoSleep_Click(object sender, RoutedEventArgs e) => await RunAsync("Veille sur secteur", async () =>
     {
-        TxtStatus.Text = "Déblocage et activation du mode Performances Ultimes...";
-        _onOutput("[i] Activation du plan d'alimentation Performances Ultimes...");
-        // Dupliquer le scheme ultime s'il n'est pas encore installé
-        await CommandRunner.RunAsync("powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61", _onOutput, _ct);
-        await ApplyPlanAsync("e9a42b02-d5df-448d-aa00-03f14749eb61", "Performances Ultimes");
-    }
+        await PowerPlanService.SetTimeoutAsync(true, true, 0, _ct); Report(true, "Le PC ne se mettra plus en veille sur secteur (pensez à remettre un délai).");
+    });
 
-    private async Task ApplyPlanAsync(string guid, string label)
+    private async void BtnSleep30_Click(object sender, RoutedEventArgs e) => await RunAsync("Veille sur secteur", async () =>
     {
-        TxtStatus.Text = $"Activation du plan {label}...";
-        _onOutput($"[i] Application du plan d'alimentation : {label} ({guid})...");
+        await PowerPlanService.SetTimeoutAsync(true, true, 30, _ct); Report(true, "Veille après 30 min sur secteur.");
+    });
 
-        await CommandRunner.RunAsync($"powercfg /setactive {guid}", _onOutput, _ct);
-        _onOutput($"[OK] Plan d'alimentation activé avec succès : {label}");
-
-        await LoadPlansAsync();
-        TxtStatus.Text = $"Plan activé : {label}";
-    }
-
-    private void BtnClose_Click(object sender, RoutedEventArgs e)
+    private async void BtnScreen10_Click(object sender, RoutedEventArgs e) => await RunAsync("Écran", async () =>
     {
-        Close();
-    }
+        await PowerPlanService.SetTimeoutAsync(false, true, 10, _ct); await PowerPlanService.SetTimeoutAsync(false, false, 5, _ct);
+        Report(true, "Écran éteint après 10 min sur secteur et 5 min sur batterie.");
+    });
+
+    private void BtnSettings_Click(object sender, RoutedEventArgs e) => CommandRunner.StartProcess("explorer.exe", "ms-settings:powersleep");
+    private void BtnClose_Click(object sender, RoutedEventArgs e) => Close();
 }

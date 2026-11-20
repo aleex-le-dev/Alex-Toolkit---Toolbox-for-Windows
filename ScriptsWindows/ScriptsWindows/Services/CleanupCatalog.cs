@@ -53,8 +53,7 @@ public static class CleanupCatalog
         var items = new List<CleanupItem>
         {
             // ─── Recommandés ───
-            Folders("temp", "Fichiers temporaires", "Fichiers laissés par les logiciels et les installations (%TEMP% et Windows\\Temp). Les fichiers en cours d'utilisation sont ignorés.",
-                    () => new[] { Path.GetTempPath(), Path.Combine(WinDir, "Temp") }),
+            TempItem(),
             new()
             {
                 Id = "wu", Title = "Cache de Windows Update",
@@ -200,6 +199,19 @@ public static class CleanupCatalog
         }, ct)
     };
 
+    /// <summary>Temporaires : dossiers « .net » des applications en cours protégés, anciennes extractions d'Alex Toolkit retirées.</summary>
+    private static CleanupItem TempItem()
+    {
+        var b = Folders("temp", "Fichiers temporaires",
+            "Fichiers laissés par les logiciels et les installations (%TEMP% et Windows\\Temp). Les fichiers en cours d'utilisation et ceux des applications ouvertes sont ignorés.",
+            () => new[] { Path.GetTempPath(), Path.Combine(WinDir, "Temp") });
+        return new CleanupItem
+        {
+            Id = b.Id, Title = b.Title, Description = b.Description, Level = b.Level, Warning = b.Warning, Measure = b.Measure,
+            Clean = async (log, ct) => await b.Clean(log, ct) + await Task.Run(DeleteStaleToolkitExtractions, ct)
+        };
+    }
+
     // ─── Emplacements ────────────────────────────────────────────────────────────
 
     private static string WuDownload => Path.Combine(WinDir, @"SoftwareDistribution\Download");
@@ -280,8 +292,40 @@ public static class CleanupCatalog
             FileInfo[] files; DirectoryInfo[] dirs;
             try { files = dir.GetFiles(); dirs = dir.GetDirectories(); } catch { continue; }
             foreach (var f in files) yield return f;
-            foreach (var d in dirs) if ((d.Attributes & FileAttributes.ReparsePoint) == 0) stack.Push(d);
+            foreach (var d in dirs) if ((d.Attributes & FileAttributes.ReparsePoint) == 0 && !IsProtectedDir(d)) stack.Push(d);
         }
+    }
+
+    /// <summary>
+    /// Dossiers jamais vidés : « .net » = DLL natives extraites par les applications .NET en un seul fichier
+    /// (dont Alex Toolkit). Elles ne sont chargées qu'au besoin, donc pas verrouillées : les supprimer pendant que
+    /// l'application tourne la fait planter (vcruntime140_cor3.dll introuvable à la fermeture, SQLite indisponible).
+    /// </summary>
+    internal static bool IsProtectedDir(DirectoryInfo d) => d.Name.Equals(".net", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Dossiers d'extraction des anciennes versions d'Alex Toolkit (%TEMP%\.net\AlexToolkit_v…) qui ne tournent plus :
+    /// supprimés (ils ne servent plus) ; celui d'une version encore ouverte est conservé.
+    /// </summary>
+    internal static long DeleteStaleToolkitExtractions()
+    {
+        long freed = 0;
+        string root = Path.Combine(Path.GetTempPath(), ".net");
+        if (!Directory.Exists(root)) return 0;
+        string current = Path.GetFileNameWithoutExtension(Environment.ProcessPath ?? "");
+        foreach (var d in new DirectoryInfo(root).GetDirectories("AlexToolkit*"))
+        {
+            if (d.Name.Equals(current, StringComparison.OrdinalIgnoreCase)) continue;
+            if (Process.GetProcessesByName(d.Name).Length > 0) continue;   // cette version est ouverte
+            try
+            {
+                long size = d.EnumerateFiles("*", SearchOption.AllDirectories).Sum(f => f.Length);
+                d.Delete(true);
+                freed += size;
+            }
+            catch { }
+        }
+        return freed;
     }
 
     /// <summary>
