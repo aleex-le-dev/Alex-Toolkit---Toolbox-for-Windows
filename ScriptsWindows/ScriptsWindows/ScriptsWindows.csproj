@@ -33,7 +33,7 @@
     <SatelliteResourceLanguages>fr</SatelliteResourceLanguages>
 
     <!-- ── Métadonnées & Icône ─────────────────────────────────────── -->
-    <Version>4.2.62</Version>
+    <Version>4.2.87</Version>
     <Company>AleexLeDev</Company>
     <Product>Alex Toolkit</Product>
     <Copyright>© 2026 AleexLeDev</Copyright>
@@ -55,6 +55,7 @@
     <EmbeddedResource Include="Assets\Scripts\Migration\Unlock-ClientDrive.ps1" LogicalName="Unlock-ClientDrive.ps1" />
     <!-- Script « Grand nettoyage » posé sur le Bureau (CleaningService.CreateDesktopCleanupScript) -->
     <EmbeddedResource Include="Assets\Scripts\Nettoyage_Systeme_Et_Disque.ps1" LogicalName="Nettoyage_Systeme_Et_Disque.ps1" />
+    <EmbeddedResource Include="Assets\Data\sites_extra.json" LogicalName="sites_extra.json" />
   </ItemGroup>
 
   <ItemGroup>

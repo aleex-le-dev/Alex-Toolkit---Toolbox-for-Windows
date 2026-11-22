@@ -1,0 +1,408 @@
+{
+  "$comment": "Sites ajoutés par Alex Toolkit en plus de la base Sherlock (même format), dont des sites et instances français. Chacun est vérifié en réel : pseudo existant (username_claimed) = trouvé, 2 pseudos inventés = absents.",
+  "Calendly": {
+    "errorType": "status_code",
+    "url": "https://calendly.com/{}",
+    "urlMain": "https://calendly.com/",
+    "username_claimed": "acme"
+  },
+  "Gab": {
+    "errorType": "status_code",
+    "url": "https://gab.com/{}",
+    "urlMain": "https://gab.com/",
+    "urlProbe": "https://gab.com/api/v1/account_by_username/{}",
+    "username_claimed": "a"
+  },
+  "Komoot": {
+    "errorType": "status_code",
+    "url": "https://www.komoot.com/user/{}",
+    "urlMain": "https://www.komoot.com/",
+    "username_claimed": "komoot"
+  },
+  "Mastodon (mastodon.online)": {
+    "errorType": "status_code",
+    "url": "https://mastodon.online/@{}",
+    "urlMain": "https://mastodon.online/",
+    "urlProbe": "https://mastodon.online/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "Gargron"
+  },
+  "NuGet": {
+    "errorType": "status_code",
+    "url": "https://www.nuget.org/profiles/{}",
+    "urlMain": "https://www.nuget.org/",
+    "username_claimed": "Microsoft",
+    "request_method": "GET"
+  },
+  "Comment Ça Marche": {
+    "errorType": "status_code",
+    "url": "https://forums.commentcamarche.net/profile/user/{}",
+    "urlMain": "https://forums.commentcamarche.net/",
+    "username_claimed": "jak58"
+  },
+  "Gitlab Adullact": {
+    "errorType": "message",
+    "errorMsg": "[]",
+    "url": "https://gitlab.adullact.net/{}",
+    "urlMain": "https://gitlab.adullact.net/",
+    "urlProbe": "https://gitlab.adullact.net/api/v4/users?username={}",
+    "username_claimed": "root"
+  },
+  "Lemmy (jlai.lu)": {
+    "errorType": "status_code",
+    "url": "https://jlai.lu/u/{}",
+    "urlMain": "https://jlai.lu/",
+    "urlProbe": "https://jlai.lu/api/v3/user?username={}",
+    "username_claimed": "anansi"
+  },
+  "LinuxFr.org": {
+    "errorType": "status_code",
+    "url": "https://linuxfr.org/users/{}",
+    "urlMain": "https://linuxfr.org/",
+    "username_claimed": "oumph"
+  },
+  "Mastodon (diaspodon.fr)": {
+    "errorType": "status_code",
+    "url": "https://diaspodon.fr/@{}",
+    "urlMain": "https://diaspodon.fr/",
+    "urlProbe": "https://diaspodon.fr/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "dada"
+  },
+  "Mastodon (eldritch.cafe)": {
+    "errorType": "status_code",
+    "url": "https://eldritch.cafe/@{}",
+    "urlMain": "https://eldritch.cafe/",
+    "urlProbe": "https://eldritch.cafe/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "Barmaid"
+  },
+  "Mastodon (framapiaf.org)": {
+    "errorType": "status_code",
+    "url": "https://framapiaf.org/@{}",
+    "urlMain": "https://framapiaf.org/",
+    "urlProbe": "https://framapiaf.org/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "Framasoft"
+  },
+  "Mastodon (hostux.social)": {
+    "errorType": "status_code",
+    "url": "https://hostux.social/@{}",
+    "urlMain": "https://hostux.social/",
+    "urlProbe": "https://hostux.social/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "alarig"
+  },
+  "Mastodon (mamot.fr)": {
+    "errorType": "status_code",
+    "url": "https://mamot.fr/@{}",
+    "urlMain": "https://mamot.fr/",
+    "urlProbe": "https://mamot.fr/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "LaQuadrature"
+  },
+  "Mastodon (mastodon.immae.eu)": {
+    "errorType": "status_code",
+    "url": "https://mastodon.immae.eu/@{}",
+    "urlMain": "https://mastodon.immae.eu/",
+    "urlProbe": "https://mastodon.immae.eu/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "immae"
+  },
+  "Mastodon (mastodon.libre-entreprise.com)": {
+    "errorType": "status_code",
+    "url": "https://mastodon.libre-entreprise.com/@{}",
+    "urlMain": "https://mastodon.libre-entreprise.com/",
+    "urlProbe": "https://mastodon.libre-entreprise.com/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "codelutin"
+  },
+  "Mastodon (mastodon.tedomum.net)": {
+    "errorType": "status_code",
+    "url": "https://mastodon.tedomum.net/@{}",
+    "urlMain": "https://mastodon.tedomum.net/",
+    "urlProbe": "https://mastodon.tedomum.net/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "tedomum"
+  },
+  "Mastodon (mastodon.top)": {
+    "errorType": "status_code",
+    "url": "https://mastodon.top/@{}",
+    "urlMain": "https://mastodon.top/",
+    "urlProbe": "https://mastodon.top/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "thomas_virtubox"
+  },
+  "Mastodon (mastodon.xyz)": {
+    "errorType": "status_code",
+    "url": "https://mastodon.xyz/@{}",
+    "urlMain": "https://mastodon.xyz/",
+    "urlProbe": "https://mastodon.xyz/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "TheKinrar"
+  },
+  "Mastodon (mastodon.zaclys.com)": {
+    "errorType": "status_code",
+    "url": "https://mastodon.zaclys.com/@{}",
+    "urlMain": "https://mastodon.zaclys.com/",
+    "urlProbe": "https://mastodon.zaclys.com/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "zaclys"
+  },
+  "Mastodon (mastoot.fr)": {
+    "errorType": "status_code",
+    "url": "https://mastoot.fr/@{}",
+    "urlMain": "https://mastoot.fr/",
+    "urlProbe": "https://mastoot.fr/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "StefOfficiel"
+  },
+  "Mastodon (mstdn.fr)": {
+    "errorType": "status_code",
+    "url": "https://mstdn.fr/@{}",
+    "urlMain": "https://mstdn.fr/",
+    "urlProbe": "https://mstdn.fr/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "support"
+  },
+  "Mastodon (oc.todon.fr)": {
+    "errorType": "status_code",
+    "url": "https://oc.todon.fr/@{}",
+    "urlMain": "https://oc.todon.fr/",
+    "urlProbe": "https://oc.todon.fr/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "val"
+  },
+  "Mastodon (piaille.fr)": {
+    "errorType": "status_code",
+    "url": "https://piaille.fr/@{}",
+    "urlMain": "https://piaille.fr/",
+    "urlProbe": "https://piaille.fr/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "admin"
+  },
+  "Mastodon (pouet.chapril.org)": {
+    "errorType": "status_code",
+    "url": "https://pouet.chapril.org/@{}",
+    "urlMain": "https://pouet.chapril.org/",
+    "urlProbe": "https://pouet.chapril.org/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "chapriladmin"
+  },
+  "Mastodon (social.apreslanu.it)": {
+    "errorType": "status_code",
+    "url": "https://social.apreslanu.it/@{}",
+    "urlMain": "https://social.apreslanu.it/",
+    "urlProbe": "https://social.apreslanu.it/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "tk"
+  },
+  "Mastodon (social.jesuislibre.net)": {
+    "errorType": "status_code",
+    "url": "https://social.jesuislibre.net/@{}",
+    "urlMain": "https://social.jesuislibre.net/",
+    "urlProbe": "https://social.jesuislibre.net/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "tuxicoman"
+  },
+  "Mastodon (social.numerique.gouv.fr)": {
+    "errorType": "status_code",
+    "url": "https://social.numerique.gouv.fr/@{}",
+    "urlMain": "https://social.numerique.gouv.fr/",
+    "urlProbe": "https://social.numerique.gouv.fr/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "admin"
+  },
+  "Mastodon (social.sciences.re)": {
+    "errorType": "status_code",
+    "url": "https://social.sciences.re/@{}",
+    "urlMain": "https://social.sciences.re/",
+    "urlProbe": "https://social.sciences.re/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "contact"
+  },
+  "Mastodon (toot.aquilenet.fr)": {
+    "errorType": "status_code",
+    "url": "https://toot.aquilenet.fr/@{}",
+    "urlMain": "https://toot.aquilenet.fr/",
+    "urlProbe": "https://toot.aquilenet.fr/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "Aquilenet"
+  },
+  "Mastodon (toot.paris)": {
+    "errorType": "status_code",
+    "url": "https://toot.paris/@{}",
+    "urlMain": "https://toot.paris/",
+    "urlProbe": "https://toot.paris/api/v1/accounts/lookup?acct={}",
+    "username_claimed": "baguette"
+  },
+  "OpenStreetMap FR (wiki)": {
+    "errorType": "status_code",
+    "url": "https://wiki.openstreetmap.org/wiki/User:{}",
+    "urlMain": "https://wiki.openstreetmap.org/",
+    "username_claimed": "Pieren",
+    "headers": {
+      "User-Agent": "AlexToolkit/4 (outil Windows pour retrouver ses propres comptes en ligne)"
+    }
+  },
+  "Over-Blog": {
+    "errorType": "status_code",
+    "url": "https://{}.over-blog.com/",
+    "urlMain": "https://over-blog.com/",
+    "username_claimed": "laurent"
+  },
+  "PeerTube (framatube.org)": {
+    "errorType": "status_code",
+    "url": "https://framatube.org/a/{}",
+    "urlMain": "https://framatube.org/",
+    "urlProbe": "https://framatube.org/api/v1/accounts/{}",
+    "username_claimed": "peertube"
+  },
+  "PeerTube (peertube.fr)": {
+    "errorType": "status_code",
+    "url": "https://peertube.fr/a/{}",
+    "urlMain": "https://peertube.fr/",
+    "urlProbe": "https://peertube.fr/api/v1/accounts/{}",
+    "username_claimed": "peertube"
+  },
+  "PeerTube (peertube.iriseden.eu)": {
+    "errorType": "status_code",
+    "url": "https://peertube.iriseden.eu/a/{}",
+    "urlMain": "https://peertube.iriseden.eu/",
+    "urlProbe": "https://peertube.iriseden.eu/api/v1/accounts/{}",
+    "username_claimed": "peertube"
+  },
+  "PeerTube (peertube.uno)": {
+    "errorType": "status_code",
+    "url": "https://peertube.uno/a/{}",
+    "urlMain": "https://peertube.uno/",
+    "urlProbe": "https://peertube.uno/api/v1/accounts/{}",
+    "username_claimed": "peertube"
+  },
+  "PeerTube (skeptikon.fr)": {
+    "errorType": "status_code",
+    "url": "https://skeptikon.fr/a/{}",
+    "urlMain": "https://skeptikon.fr/",
+    "urlProbe": "https://skeptikon.fr/api/v1/accounts/{}",
+    "username_claimed": "peertube"
+  },
+  "PeerTube (tube.aquilenet.fr)": {
+    "errorType": "status_code",
+    "url": "https://tube.aquilenet.fr/a/{}",
+    "urlMain": "https://tube.aquilenet.fr/",
+    "urlProbe": "https://tube.aquilenet.fr/api/v1/accounts/{}",
+    "username_claimed": "peertube"
+  },
+  "PeerTube (tube.fdn.fr)": {
+    "errorType": "status_code",
+    "url": "https://tube.fdn.fr/a/{}",
+    "urlMain": "https://tube.fdn.fr/",
+    "urlProbe": "https://tube.fdn.fr/api/v1/accounts/{}",
+    "username_claimed": "peertube"
+  },
+  "PeerTube (tube.p2p.legal)": {
+    "errorType": "status_code",
+    "url": "https://tube.p2p.legal/a/{}",
+    "urlMain": "https://tube.p2p.legal/",
+    "urlProbe": "https://tube.p2p.legal/api/v1/accounts/{}",
+    "username_claimed": "peertube"
+  },
+  "PeerTube (video.antopie.org)": {
+    "errorType": "status_code",
+    "url": "https://video.antopie.org/a/{}",
+    "urlMain": "https://video.antopie.org/",
+    "urlProbe": "https://video.antopie.org/api/v1/accounts/{}",
+    "username_claimed": "peertube"
+  },
+  "PeerTube (video.blast-info.fr)": {
+    "errorType": "status_code",
+    "url": "https://video.blast-info.fr/a/{}",
+    "urlMain": "https://video.blast-info.fr/",
+    "urlProbe": "https://video.blast-info.fr/api/v1/accounts/{}",
+    "username_claimed": "peertube"
+  },
+  "PeerTube (video.colibris-outilslibres.org)": {
+    "errorType": "status_code",
+    "url": "https://video.colibris-outilslibres.org/a/{}",
+    "urlMain": "https://video.colibris-outilslibres.org/",
+    "urlProbe": "https://video.colibris-outilslibres.org/api/v1/accounts/{}",
+    "username_claimed": "root"
+  },
+  "PeerTube (video.lqdn.fr)": {
+    "errorType": "status_code",
+    "url": "https://video.lqdn.fr/a/{}",
+    "urlMain": "https://video.lqdn.fr/",
+    "urlProbe": "https://video.lqdn.fr/api/v1/accounts/{}",
+    "username_claimed": "peertube"
+  },
+  "PeerTube (video.ploud.fr)": {
+    "errorType": "status_code",
+    "url": "https://video.ploud.fr/a/{}",
+    "urlMain": "https://video.ploud.fr/",
+    "urlProbe": "https://video.ploud.fr/api/v1/accounts/{}",
+    "username_claimed": "peertube"
+  },
+  "PeerTube (videos.lescommuns.org)": {
+    "errorType": "status_code",
+    "url": "https://videos.lescommuns.org/a/{}",
+    "urlMain": "https://videos.lescommuns.org/",
+    "urlProbe": "https://videos.lescommuns.org/api/v1/accounts/{}",
+    "username_claimed": "peertube"
+  },
+  "Tipeee": {
+    "errorType": "status_code",
+    "url": "https://fr.tipeee.com/{}",
+    "urlMain": "https://fr.tipeee.com/",
+    "username_claimed": "linksthesun"
+  },
+  "Vikidia": {
+    "errorType": "message",
+    "errorMsg": "\"missing\"",
+    "url": "https://fr.vikidia.org/wiki/Utilisateur:{}",
+    "urlMain": "https://fr.vikidia.org/",
+    "urlProbe": "https://fr.vikidia.org/w/api.php?action=query&list=users&ususers={}&format=json",
+    "username_claimed": "A",
+    "headers": {
+      "User-Agent": "AlexToolkit/4 (outil Windows pour retrouver ses propres comptes en ligne)"
+    }
+  },
+  "Zeste de Savoir": {
+    "errorType": "status_code",
+    "url": "https://zestedesavoir.com/@{}",
+    "urlMain": "https://zestedesavoir.com/",
+    "username_claimed": "Arius"
+  },
+  "Wikipédia (fr)": {
+    "errorType": "message",
+    "errorMsg": "\"missing\"",
+    "url": "https://fr.wikipedia.org/wiki/Utilisateur:{}",
+    "urlMain": "https://fr.wikipedia.org/",
+    "urlProbe": "https://fr.wikipedia.org/w/api.php?action=query&list=users&ususers={}&format=json",
+    "username_claimed": "A",
+    "headers": {
+      "User-Agent": "AlexToolkit/4 (outil Windows pour retrouver ses propres comptes en ligne)"
+    }
+  },
+  "Wiktionnaire": {
+    "errorType": "message",
+    "errorMsg": "\"missing\"",
+    "url": "https://fr.wiktionary.org/wiki/Utilisateur:{}",
+    "urlMain": "https://fr.wiktionary.org/",
+    "urlProbe": "https://fr.wiktionary.org/w/api.php?action=query&list=users&ususers={}&format=json",
+    "username_claimed": "A Certain Lack of Grandeur",
+    "headers": {
+      "User-Agent": "AlexToolkit/4 (outil Windows pour retrouver ses propres comptes en ligne)"
+    }
+  },
+  "Wikisource (fr)": {
+    "errorType": "message",
+    "errorMsg": "\"missing\"",
+    "url": "https://fr.wikisource.org/wiki/Utilisateur:{}",
+    "urlMain": "https://fr.wikisource.org/",
+    "urlProbe": "https://fr.wikisource.org/w/api.php?action=query&list=users&ususers={}&format=json",
+    "username_claimed": "A Bassinet",
+    "headers": {
+      "User-Agent": "AlexToolkit/4 (outil Windows pour retrouver ses propres comptes en ligne)"
+    }
+  },
+  "Wikiversité": {
+    "errorType": "message",
+    "errorMsg": "\"missing\"",
+    "url": "https://fr.wikiversity.org/wiki/Utilisateur:{}",
+    "urlMain": "https://fr.wikiversity.org/",
+    "urlProbe": "https://fr.wikiversity.org/w/api.php?action=query&list=users&ususers={}&format=json",
+    "username_claimed": "A teffal",
+    "headers": {
+      "User-Agent": "AlexToolkit/4 (outil Windows pour retrouver ses propres comptes en ligne)"
+    }
+  },
+  "Wikilivres": {
+    "errorType": "message",
+    "errorMsg": "\"missing\"",
+    "url": "https://fr.wikibooks.org/wiki/Utilisateur:{}",
+    "urlMain": "https://fr.wikibooks.org/",
+    "urlProbe": "https://fr.wikibooks.org/w/api.php?action=query&list=users&ususers={}&format=json",
+    "username_claimed": "A-l c 59",
+    "headers": {
+      "User-Agent": "AlexToolkit/4 (outil Windows pour retrouver ses propres comptes en ligne)"
+    }
+  }
+}

@@ -241,6 +241,24 @@ public class CommandRunner
     }
 
     /// <summary>
+    /// Ouvre une adresse web dans le navigateur de la session, SANS les droits administrateur d'Alex Toolkit :
+    /// explorer.exe confie l'ouverture à l'Explorateur déjà lancé (niveau normal) → le navigateur garde les comptes connectés.
+    /// L'adresse passe par un raccourci Internet temporaire (.url) : donnée directement à explorer.exe, une adresse longue
+    /// ou contenant des guillemets encodés (recherches « … » OR « … ») n'était pas reconnue et l'Explorateur ouvrait Documents.
+    /// </summary>
+    public static void OpenUrlAsUser(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var u) || u.Scheme is not ("http" or "https" or "mailto")) return;
+        string dir = Path.Combine(Path.GetTempPath(), "AlexToolkit_liens");
+        Directory.CreateDirectory(dir);
+        foreach (var old in Directory.EnumerateFiles(dir, "*.url"))   // ménage : raccourcis de plus d'une heure
+            try { if (DateTime.Now - File.GetCreationTime(old) > TimeSpan.FromHours(1)) File.Delete(old); } catch { }
+        string file = Path.Combine(dir, $"lien_{DateTime.Now:HHmmssfff}_{Guid.NewGuid().ToString("N")[..6]}.url");
+        File.WriteAllText(file, "[InternetShortcut]\r\nURL=" + u.AbsoluteUri + "\r\n");
+        using var _ = Process.Start(new ProcessStartInfo("explorer.exe") { ArgumentList = { file }, UseShellExecute = false });
+    }
+
+    /// <summary>
     /// Lance un exécutable avec ShellExecute (ex: cleanmgr, msconfig...).
     /// </summary>
     public static void StartProcess(string exeName, string args = "")

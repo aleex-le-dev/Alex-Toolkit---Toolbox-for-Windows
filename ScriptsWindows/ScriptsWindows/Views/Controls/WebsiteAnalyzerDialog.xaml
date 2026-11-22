@@ -196,6 +196,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <Button Grid.Column="0" x:Name="BtnTabOverview" Content="📊 1. Vue d'Ensemble" Style="{StaticResource PrimaryActionButton}" Margin="2" Padding="8,7" FontSize="11.5" Click="BtnTabOverview_Click"/>
                 <Button Grid.Column="1" x:Name="BtnTabChecklist" Content="📋 2. Checklist (21)" Style="{StaticResource ActionButton}" Margin="2" Padding="8,7" FontSize="11.5" Click="BtnTabChecklist_Click"/>
@@ -203,6 +204,8 @@
                 <Button Grid.Column="3" x:Name="BtnTabSeo" Content="🔍 4. SEO &amp; SERP" Style="{StaticResource ActionButton}" Margin="2" Padding="8,7" FontSize="11.5" Click="BtnTabSeo_Click"/>
                 <Button Grid.Column="4" x:Name="BtnTabKeywords" Content="🔑 5. Mots-Clés" Style="{StaticResource ActionButton}" Margin="2" Padding="8,7" FontSize="11.5" Click="BtnTabKeywords_Click"/>
                 <Button Grid.Column="5" x:Name="BtnTabNetwork" Content="🛡️ 6. Réseau, SSL &amp; Liens" Style="{StaticResource ActionButton}" Margin="2" Padding="8,7" FontSize="11.5" Click="BtnTabNetwork_Click"/>
+                <Button Grid.Column="6" x:Name="BtnTabDomain" Content="✉️ 7. Domaine &amp; e-mails" Style="{StaticResource ActionButton}" Margin="2" Padding="8,7" FontSize="11.5" Click="BtnTabDomain_Click"
+                        ToolTip="Sous-domaines visibles publiquement, protection des e-mails contre l'usurpation (SPF, DMARC, DKIM)"/>
             </Grid>
         </Border>
 
@@ -804,6 +807,13 @@
                             </StackPanel>
                         </Border>
                     </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- 7. DOMAINE & E-MAILS (contenu construit dans le code) -->
+            <Border x:Name="PanelDomain" Visibility="Collapsed" Background="{DynamicResource BgDeep}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="14">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
+                    <StackPanel x:Name="DomainContent"/>
                 </ScrollViewer>
             </Border>
 

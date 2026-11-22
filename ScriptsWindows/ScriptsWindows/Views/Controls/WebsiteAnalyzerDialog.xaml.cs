@@ -12,6 +12,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using ScriptsWindows.Services;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -160,7 +161,10 @@ public partial class WebsiteAnalyzerDialog : Window
 
     private void SwitchTab(int tabIndex)
     {
-        _activeTab = Math.Clamp(tabIndex, 0, 5);
+        _activeTab = Math.Clamp(tabIndex, 0, 6);
+        PanelDomain.Visibility = _activeTab == 6 ? Visibility.Visible : Visibility.Collapsed;
+        BtnTabDomain.Style = (Style)FindResource(_activeTab == 6 ? "PrimaryActionButton" : "ActionButton");
+        if (_activeTab == 6 && DomainContent.Children.Count == 0) RenderDomainIntro();
 
         PanelOverview.Visibility = _activeTab == 0 ? Visibility.Visible : Visibility.Collapsed;
         PanelChecklist.Visibility = _activeTab == 1 ? Visibility.Visible : Visibility.Collapsed;
@@ -183,6 +187,83 @@ public partial class WebsiteAnalyzerDialog : Window
     private void BtnTabSeo_Click(object sender, RoutedEventArgs e) => SwitchTab(3);
     private void BtnTabKeywords_Click(object sender, RoutedEventArgs e) => SwitchTab(4);
     private void BtnTabNetwork_Click(object sender, RoutedEventArgs e) => SwitchTab(5);
+    private void BtnTabDomain_Click(object sender, RoutedEventArgs e) => SwitchTab(6);
+
+    // ─── Onglet 7 : domaine & e-mails (DomainAuditService) ───
+    private string _domainReport = "";
+    private bool _domainBusy;
+
+    private static TextBlock DTxt(string text, double size = 12, string brush = "TextSecondary", bool bold = false) => new()
+    {
+        Text = text, FontSize = size, Foreground = ThemeManager.GetBrush(brush), TextWrapping = TextWrapping.Wrap, FontWeight = bold ? FontWeights.SemiBold : FontWeights.Normal
+    };
+
+    private void RenderDomainIntro()
+    {
+        DomainContent.Children.Clear();
+        var head = new DockPanel { Margin = new Thickness(0, 0, 0, 10) };
+        var go = new Button { Content = "Analyser le domaine", Margin = new Thickness(8, 0, 0, 0) };
+        go.SetResourceReference(StyleProperty, "PrimaryActionButton");
+        go.Click += async (_, _) => await RunDomainAuditAsync();
+        DockPanel.SetDock(go, Dock.Right); head.Children.Add(go);
+        string? dom = DomainAuditService.NormalizeDomain(TxtUrl.Text);
+        head.Children.Add(DTxt(dom == null ? "Saisissez l'adresse du site en haut de la fenêtre." : $"Domaine : {dom}", 13, "TextPrimary", true));
+        DomainContent.Children.Add(head);
+        DomainContent.Children.Add(DTxt("À faire sur votre domaine ou sur celui d'un client qui vous l'a demandé. Vérifie la protection des e-mails contre l'usurpation (SPF, DMARC, DKIM) et liste les sous-domaines visibles publiquement dans les journaux de certificats. Aucune adresse e-mail ni aucun nom de personne n'est collecté.", 11.5));
+    }
+
+    internal async Task RunDomainAuditAsync()
+    {
+        if (_domainBusy) return;
+        string? dom = DomainAuditService.NormalizeDomain(TxtUrl.Text);
+        RenderDomainIntro();
+        if (dom == null) return;
+        _domainBusy = true;
+        var status = DTxt("Lecture des enregistrements DNS…", 12, "TextMuted");
+        DomainContent.Children.Add(status);
+        var report = new System.Text.StringBuilder($"## Domaine & e-mails — {dom}\n");
+        try
+        {
+            var checks = await DomainAuditService.EmailSecurityAsync(dom, _cancellationToken);
+            DomainContent.Children.Remove(status);
+            var h1 = DTxt("Protection des e-mails contre l'usurpation", 14, "TextPrimary", true); h1.Margin = new Thickness(0, 12, 0, 0);
+            DomainContent.Children.Add(h1);
+            foreach (var c in checks)
+            {
+                string lvl = c.Level switch { DomainLevel.Ok => "Success", DomainLevel.Warn => "Warning", DomainLevel.Fail => "Danger", _ => "Accent" };
+                var sp = new StackPanel();
+                var line = new WrapPanel();
+                line.Children.Add(DTxt(c.Title, 12.5, "TextPrimary", true));
+                var badge = new Border { CornerRadius = new CornerRadius(4), Padding = new Thickness(7, 1, 7, 1), Margin = new Thickness(10, 0, 0, 0), Background = ThemeManager.GetBrush(lvl == "Accent" ? "BgInput" : lvl + "Bg") };
+                badge.Child = DTxt(c.Verdict, 11, lvl == "Accent" ? "TextSecondary" : lvl + "Text", true);
+                line.Children.Add(badge);
+                sp.Children.Add(line);
+                if (c.Detail.Length > 0) { var d = DTxt(c.Detail, 11.5); d.FontFamily = (FontFamily)FindResource("FontMono"); sp.Children.Add(d); }
+                if (c.Advice.Length > 0) sp.Children.Add(DTxt("→ " + c.Advice, 11.5, lvl == "Danger" ? "DangerText" : "WarningText"));
+                DomainContent.Children.Add(new Border { Child = sp, Padding = new Thickness(0, 8, 0, 8), BorderBrush = ThemeManager.GetBrush("Border"), BorderThickness = new Thickness(0, 0, 0, 1) });
+                report.AppendLine($"- {c.Title} : {c.Verdict}" + (c.Advice.Length > 0 ? $" → {c.Advice}" : ""));
+            }
+            var subStatus = DTxt("Recherche des sous-domaines dans les journaux de certificats (crt.sh, jusqu'à 45 s)…", 12, "TextMuted");
+            subStatus.Margin = new Thickness(0, 14, 0, 0);
+            DomainContent.Children.Add(subStatus);
+            var (subs, err) = await DomainAuditService.SubdomainsAsync(dom, _cancellationToken);
+            DomainContent.Children.Remove(subStatus);
+            var title = DTxt($"Sous-domaines visibles publiquement ({subs.Count})", 14, "TextPrimary", true); title.Margin = new Thickness(0, 14, 0, 4);
+            DomainContent.Children.Add(title);
+            if (err.Length > 0) DomainContent.Children.Add(DTxt(err, 11.5, subs.Count == 0 ? "WarningText" : "TextMuted"));
+            int risky = subs.Count(s => s.Sensitive && s.Active);
+            if (risky > 0) DomainContent.Children.Add(DTxt($"{risky} sous-domaine(s) actif(s) au nom sensible (test, dev, admin, ancien…) : vérifier qu'ils doivent vraiment être accessibles depuis Internet (mot de passe, mise à jour, ou suppression).", 12, "WarningText", true));
+            foreach (var s in subs.Take(150))
+                DomainContent.Children.Add(DTxt($"{(s.Active ? "●" : "○")}  {s.Name}" + (s.Active ? $"  ({s.Address})" : "  — ne répond plus (certificat ancien)") + (s.Sensitive && s.Active ? "  ← à vérifier" : ""),
+                    11.5, s.Sensitive && s.Active ? "WarningText" : s.Active ? "TextPrimary" : "TextMuted"));
+            report.AppendLine($"- Sous-domaines publics : {subs.Count} ({subs.Count(s => s.Active)} actifs, {risky} sensibles actifs)");
+            _domainReport = report.ToString();
+            _externalOutput?.Invoke($"[OK] Domaine {dom} : {checks.Count(c => c.Level == DomainLevel.Fail)} problème(s) e-mail, {subs.Count} sous-domaine(s).");
+        }
+        catch (OperationCanceledException) { DomainContent.Children.Add(DTxt("Analyse arrêtée.", 12)); }
+        catch (Exception ex) { DomainContent.Children.Remove(status); DomainContent.Children.Add(DTxt("Analyse impossible : " + ex.Message, 12, "DangerText")); }
+        finally { _domainBusy = false; }
+    }
 
     private void InitializeDefaultChecks()
     {
@@ -1563,7 +1644,9 @@ public partial class WebsiteAnalyzerDialog : Window
         }
     }
 
-    private string BuildReportText()
+    private string BuildReportText() => BuildReportTextCore() + (_domainReport.Length > 0 ? "\n" + _domainReport : "");
+
+    private string BuildReportTextCore()
     {
         var sb = new StringBuilder();
         sb.AppendLine("# 🌐 Rapport Complet d'Audit Web, Speedtest & SEO — Alex Toolkit");

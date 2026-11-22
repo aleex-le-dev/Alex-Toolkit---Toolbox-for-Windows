@@ -1,0 +1,45 @@
+<Window xmlns:ui="http://schemas.modernwpf.com/2019" ui:WindowHelper.UseModernWindowStyle="True"
+        x:Class="ScriptsWindows.Views.Controls.MetadataDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Métadonnées cachées"
+        Width="960" Height="720" WindowStartupLocation="CenterOwner" ResizeMode="CanResize" MinWidth="760" MinHeight="520" AllowDrop="True"
+        Background="{DynamicResource BgDeep}" Foreground="{DynamicResource TextPrimary}" FontFamily="{StaticResource FontMain}">
+    <Grid Margin="24">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" Margin="0,0,0,14">
+            <Border Width="40" Height="40" CornerRadius="8" Background="{DynamicResource AccentDim}" Margin="0,0,14,0">
+                <TextBlock Text="&#xE8B9;" FontFamily="{StaticResource FontIcon}" FontSize="18" Foreground="{DynamicResource AccentText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Métadonnées cachées des photos et documents" FontFamily="{StaticResource FontDisplay}" FontSize="19" FontWeight="SemiBold"/>
+                <TextBlock Text="Avant de publier une photo ou d'envoyer un document : position GPS, téléphone utilisé, nom de l'auteur, société, commentaires et modifications cachées. Le nettoyage crée une copie, l'original n'est jamais modifié."
+                           Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+        </DockPanel>
+
+        <WrapPanel Grid.Row="1" Margin="-6,0,0,10">
+            <Button Content="Choisir des fichiers…" Style="{StaticResource PrimaryActionButton}" Margin="6,0,0,0" Click="BtnFiles_Click"/>
+            <Button Content="Analyser un dossier…" Style="{StaticResource ActionButton}" Margin="6,0,0,0" Click="BtnFolder_Click"/>
+            <Button x:Name="BtnRiskOnly" Content="Fichiers à risque seulement" Style="{StaticResource ActionButton}" Margin="6,0,0,0" Click="BtnRiskOnly_Click"/>
+            <TextBlock Text="…ou glissez des fichiers ou un dossier dans la fenêtre" Foreground="{DynamicResource TextMuted}" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"/>
+        </WrapPanel>
+
+        <Border Grid.Row="2" x:Name="PanelSummary" Visibility="Collapsed" CornerRadius="8" Padding="14,10" Margin="0,0,0,10">
+            <TextBlock x:Name="TxtSummary" FontSize="12.5" FontWeight="SemiBold" TextWrapping="Wrap"/>
+        </Border>
+
+        <Border Grid.Row="3" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="6">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="PanelFiles" Margin="8,4"/></ScrollViewer>
+        </Border>
+
+        <DockPanel Grid.Row="4" Margin="0,14,0,0">
+            <Button DockPanel.Dock="Right" Content="Fermer" Style="{StaticResource ActionButton}" Click="BtnClose_Click"/>
+            <Button DockPanel.Dock="Right" x:Name="BtnCsv" Content="Exporter (CSV)" Style="{StaticResource ActionButton}" Margin="0,0,8,0" IsEnabled="False" Click="BtnCsv_Click"
+                    ToolTip="Tableau de toutes les métadonnées (une ligne par fichier), lisible dans Excel"/>
+            <Button DockPanel.Dock="Right" x:Name="BtnCleanAll" Content="Créer les copies nettoyées" Style="{StaticResource ActionButton}" Margin="0,0,8,0" IsEnabled="False" Click="BtnCleanAll_Click"/>
+            <TextBlock x:Name="TxtStatus" Foreground="{DynamicResource TextSecondary}" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        </DockPanel>
+    </Grid>
+</Window>

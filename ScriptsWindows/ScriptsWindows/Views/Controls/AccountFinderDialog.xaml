@@ -1,0 +1,111 @@
+﻿<Window xmlns:ui="http://schemas.modernwpf.com/2019" ui:WindowHelper.UseModernWindowStyle="True"
+        x:Class="ScriptsWindows.Views.Controls.AccountFinderDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Mes informations en ligne"
+        Width="1000" Height="960" WindowStartupLocation="CenterOwner" ResizeMode="CanResize" MinWidth="800" MinHeight="600"
+        Background="{DynamicResource BgDeep}" Foreground="{DynamicResource TextPrimary}" FontFamily="{StaticResource FontMain}">
+    <Grid Margin="24">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" Margin="0,0,0,12">
+            <Border Width="40" Height="40" CornerRadius="8" Background="{DynamicResource AccentDim}" Margin="0,0,14,0">
+                <TextBlock Text="&#xE716;" FontFamily="{StaticResource FontIcon}" FontSize="18" Foreground="{DynamicResource AccentText}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Mes informations en ligne" FontFamily="{StaticResource FontDisplay}" FontSize="19" FontWeight="SemiBold"/>
+                <TextBlock Text="Remplissez ce que vous voulez vérifier (tout est facultatif), puis « Tout vérifier » : comptes oubliés sur plus de 500 sites, fuites de données, présence sur le web, et comment tout supprimer. Pour vos propres informations uniquement ; l'historique reste sur ce PC."
+                           Foreground="{DynamicResource TextSecondary}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Formulaire -->
+        <Border Grid.Row="1" x:Name="PanelForm" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="16,12">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="16"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,8">
+                        <TextBlock Text="Pseudo(s) — séparés par des espaces" FontSize="11.5" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"/>
+                        <TextBox x:Name="TxtUsers" Style="{StaticResource FieldTextBox}" KeyDown="Field_KeyDown" ToolTip="Ex. alex92 alex_dev (5 au maximum)"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,8">
+                        <TextBlock Text="Adresse e-mail" FontSize="11.5" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"/>
+                        <TextBox x:Name="TxtEmail" Style="{StaticResource FieldTextBox}" KeyDown="Field_KeyDown"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,8">
+                        <TextBlock Text="Numéro de téléphone" FontSize="11.5" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"/>
+                        <TextBox x:Name="TxtPhone" Style="{StaticResource FieldTextBox}" KeyDown="Field_KeyDown" ToolTip="Ex. 06 12 34 56 78"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,8">
+                        <TextBlock Text="Prénom et nom" FontSize="11.5" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"/>
+                        <TextBox x:Name="TxtFullName" Style="{StaticResource FieldTextBox}" KeyDown="Field_KeyDown"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,0,8">
+                        <TextBlock Text="Adresse postale (numéro et rue)" FontSize="11.5" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"/>
+                        <TextBox x:Name="TxtAddress" Style="{StaticResource FieldTextBox}" KeyDown="Field_KeyDown" ToolTip="Ex. 12 rue des Lilas"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,0,0,8">
+                        <TextBlock Text="Ville ou code postal" FontSize="11.5" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"/>
+                        <TextBox x:Name="TxtCity" Style="{StaticResource FieldTextBox}" KeyDown="Field_KeyDown"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,0,8">
+                        <TextBlock Text="IBAN (vérifié sur ce PC, jamais envoyé ni enregistré)" FontSize="11.5" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"/>
+                        <TextBox x:Name="TxtIban" Style="{StaticResource FieldTextBox}" KeyDown="Field_KeyDown" ToolTip="Ex. FR76 3000 4000 0312 3456 7890 143"/>
+                    </StackPanel>
+                    <TextBlock Grid.Row="3" Grid.Column="2" VerticalAlignment="Bottom" Margin="0,0,0,12" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource TextMuted}"
+                               Text="L'adresse et l'IBAN ne partent nulle part : ils servent à cibler les conseils et les recherches que vous lancez vous-même."/>
+                    <StackPanel Grid.Row="4" Grid.Column="0">
+                        <TextBlock Text="Services dont je suis / j'ai été client — séparés par des virgules" FontSize="11.5" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"/>
+                        <TextBox x:Name="TxtServices" Style="{StaticResource FieldTextBox}" KeyDown="Field_KeyDown" ToolTip="Ex. Free, Leboncoin, Cultura, Deezer"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="4" Grid.Column="2">
+                        <TextBlock Text="Mot de passe à vérifier (jamais envoyé ni enregistré)" FontSize="11.5" Foreground="{DynamicResource TextMuted}" Margin="0,0,0,2"/>
+                        <PasswordBox x:Name="PwdCheck" Style="{StaticResource FieldPasswordBox}" KeyDown="Field_KeyDown"/>
+                    </StackPanel>
+                </Grid>
+                <DockPanel Margin="0,12,0,0">
+                    <Button DockPanel.Dock="Right" x:Name="BtnSearch" Content="Tout vérifier" Style="{StaticResource PrimaryActionButton}" Margin="8,0,0,0" Click="BtnSearch_Click"/>
+                    <Button DockPanel.Dock="Right" x:Name="BtnClear" Content="Effacer" Style="{StaticResource ActionButton}" Margin="8,0,0,0" Click="BtnClear_Click"/>
+                    <Button DockPanel.Dock="Right" x:Name="BtnExtended" Content="Recherche étendue : non" Style="{StaticResource ActionButton}" Margin="8,0,0,0"
+                            ToolTip="Pseudos : ajoute environ 500 sites (populaires et français) de la base maigret, recherche environ deux fois plus longue" Click="BtnExtended_Click"/>
+                    <Button DockPanel.Dock="Right" x:Name="BtnKey" Content="Clé Have I Been Pwned" Style="{StaticResource ActionButton}" Margin="8,0,0,0"
+                            ToolTip="Facultative : affiche directement ici les fuites de l'e-mail et du numéro" Click="BtnKey_Click"/>
+                    <TextBlock x:Name="TxtHint" FontSize="11.5" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" TextWrapping="Wrap"
+                               Text="Seuls les champs remplis sont vérifiés."/>
+                </DockPanel>
+                <StackPanel x:Name="PanelKey" Visibility="Collapsed" Margin="0,10,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2" x:Name="PanelProgress" Visibility="Collapsed" Margin="0,12,0,0" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Accent}" BorderThickness="1" CornerRadius="8" Padding="16,12">
+            <StackPanel>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" x:Name="TxtPct" FontFamily="{StaticResource FontDisplay}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource AccentText}"/>
+                    <TextBlock x:Name="TxtStep" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                </DockPanel>
+                <Border Height="8" CornerRadius="4" Background="{DynamicResource BgInput}" Margin="0,10,0,0" ClipToBounds="True">
+                    <Grid x:Name="BarProgress"><Grid.ColumnDefinitions><ColumnDefinition Width="0*"/><ColumnDefinition Width="100*"/></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" CornerRadius="4" Background="{DynamicResource Accent}"/></Grid>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!-- Rubriques de résultats (construites selon les champs remplis) -->
+        <WrapPanel Grid.Row="3" x:Name="PanelViews" Margin="-6,12,0,8"/>
+
+        <Border Grid.Row="4" Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="6">
+            <ScrollViewer x:Name="ScrollResults" VerticalScrollBarVisibility="Auto"><StackPanel x:Name="PanelResults" Margin="8,4"/></ScrollViewer>
+        </Border>
+
+        <DockPanel Grid.Row="5" Margin="0,14,0,0">
+            <Button DockPanel.Dock="Right" Content="Fermer" Style="{StaticResource ActionButton}" Click="BtnClose_Click"/>
+            <Button DockPanel.Dock="Right" x:Name="BtnHistory" Content="Historique" Style="{StaticResource ActionButton}" Margin="0,0,8,0" Click="BtnHistory_Click"
+                    ToolTip="Recherches précédentes (gardées sur ce PC uniquement)"/>
+            <Button DockPanel.Dock="Right" x:Name="BtnExport" Content="Exporter (HTML)" Style="{StaticResource ActionButton}" Margin="0,0,8,0" IsEnabled="False" Click="BtnExport_Click"/>
+            <Button DockPanel.Dock="Right" x:Name="BtnCopy" Content="Copier les liens" Style="{StaticResource ActionButton}" Margin="0,0,8,0" IsEnabled="False" Click="BtnCopy_Click"/>
+            <TextBlock x:Name="TxtStatus" Foreground="{DynamicResource TextSecondary}" FontSize="11.5" VerticalAlignment="Center" TextWrapping="Wrap"
+                       Text="Sources : Sherlock et maigret (sites), JustDeleteMe (suppression), Have I Been Pwned (fuites) — licences et usages publics."/>
+        </DockPanel>
+    </Grid>
+</Window>

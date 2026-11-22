@@ -105,6 +105,8 @@ public static class ToolRegistry
         ["sec_defender_quickscan"] = "AlexToolkit.exe (interface : DefenderScanDialog — Get-MpComputerStatus, Start-MpScan, Get-MpThreat)",
         ["sec_perfmon_rel"] = "perfmon.exe /rel",
         ["sec_malware_cleanup"] = "AlexToolkit.exe (hosts, proxy, Get-ScheduledTask, clés Run / RunOnce / Policies, HK*\\SOFTWARE\\Policies (ExtensionInstallForcelist, HomepageLocation…), IFEO Debugger, Winlogon Shell / Userinit, root\\subscription, Get-MpPreference exclusions + Start-MpScan / Start-MpWDOScan, winget AdwCleaner / Malwarebytes)",
+        ["sec_metadata"] = "AlexToolkit.exe (MetadataService : EXIF / XMP / PNG tEXt-iTXt-eXIf, docProps Office + commentaires / révisions, dictionnaire Info PDF ; copies nettoyées JPEG / PNG / Office)",
+        ["sec_account_finder"] = "AlexToolkit.exe (AccountFinderService : data.json de sherlock-project, HEAD/GET/POST en parallèle (24), règles status_code / message / response_url, pseudo témoin ; JustDeleteMeIndex : _data/sites.json de jdm-contrib/jdm)",
         ["sec_user_accounts"] = "AlexToolkit.exe (Comptes locaux : Get/New/Set/Remove-LocalUser, groupes par SID)",
 
         // ─── Personnalisation (3) ───
@@ -659,6 +661,49 @@ public static class ToolRegistry
 
         _allTools.Add(new ScriptTool
         {
+            Id = "sec_account_finder",
+            Name = "Mes informations en ligne (comptes et fuites)",
+            Description = "Un seul formulaire : remplissez ce que vous voulez vérifier (pseudos, e-mail, téléphone, nom, services dont vous êtes client, mot de passe), puis « Tout vérifier » : comptes oubliés sur plus de 500 sites, fuites de données, présence sur le web, et comment tout supprimer.",
+            Features = new[]
+            {
+                "Formulaire unique, tout facultatif : chaque champ rempli est vérifié en même temps, vue d'ensemble puis une rubrique par vérification",
+                "Jusqu'à 5 pseudos à la fois (anciens pseudos, variantes)",
+                "Comptes trouvés, à vérifier (sites protégés) ou absents, au fil de la recherche",
+                "Bouton « Supprimer le compte » vers la bonne page, difficulté et conseils (base JustDeleteMe), e-mail de demande prérempli",
+                "Profil ouvert dans votre navigateur avec vos comptes connectés, export HTML",
+                "Suivi de la suppression de chaque compte (demande envoyée, supprimé, à garder) avec revérification, comptes aux mots de passe fuités en tête",
+                "Historique des recherches sur ce PC : réafficher, supprimer, tout effacer",
+                "Bases des projets Sherlock et JustDeleteMe (MIT), toujours à jour ; recherche étendue : +500 sites (maigret)",
+                "Fuites touchant vos comptes, votre e-mail, numéro, services et mot de passe ; inscriptions par e-mail ; nom sur le web ; demandes RGPD prêtes à envoyer"
+            },
+            Category = "SECRETS",
+            SubHeading = "Comptes en ligne",
+            Icon = "🔎",
+            Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.AccountFinderDialog(log, ct)),
+            Tags = new[] { "pseudo", "compte", "comptes", "réseaux sociaux", "supprimer", "sherlock", "empreinte", "instagram", "tiktok", "facebook", "oubliés", "inscription", "fuite", "pwned" }
+        });
+
+        _allTools.Add(new ScriptTool
+        {
+            Id = "sec_metadata",
+            Name = "Métadonnées cachées des photos et documents",
+            Description = "Avant de publier une photo ou d'envoyer un document : retrouve la position GPS, le téléphone utilisé, l'auteur, la société, les commentaires et modifications cachées, et crée une copie nettoyée.",
+            Features = new[]
+            {
+                "Photos (JPEG, PNG, HEIC, WebP, TIFF) : position GPS sur la carte, appareil, n° de série, auteur",
+                "Word, Excel, PowerPoint : auteur, société, commentaires et modifications suivies oubliés ; PDF : auteur et logiciel",
+                "Fichiers, dossier entier ou glisser-déposer ; fichiers à risque en tête",
+                "Copie nettoyée (orientation des photos conservée), l'original n'est jamais modifié"
+            },
+            Category = "SECRETS",
+            SubHeading = "Confidentialité de mes fichiers",
+            Icon = "🏷️",
+            Action = (log, ct) => DialogHelper.ShowDialogAsync(() => new Views.Controls.MetadataDialog(log, ct)),
+            Tags = new[] { "métadonnées", "exif", "gps", "localisation", "photo", "auteur", "document", "nettoyer", "vie privée", "partager", "word", "pdf" }
+        });
+
+        _allTools.Add(new ScriptTool
+        {
             Id = "sec_win_key",
             Name = "Retrouver ma clé d'activation Windows originale",
             Description = "Lit la clé de licence officielle gravée dans la carte mère de votre PC, indispensable en cas de réinstallation complète de Windows.",
@@ -777,7 +822,8 @@ public static class ToolRegistry
             {
                 "Tableau de bord global (Note A+ à D, 4 piliers, plan d'action prioritaire) & Checklist 21 points",
                 "Speedtest Web (Waterfall DNS/TLS/TTFB, débit, 5 salves HTTP, simulation Fibre/4G/3G)",
-                "Studio SEO & Mots-Clés (Aperçu Google SERP, Open Graph, H1-H6, densité lexicale, SSL & Headers)"
+                "Studio SEO & Mots-Clés (Aperçu Google SERP, Open Graph, H1-H6, densité lexicale, SSL & Headers)",
+                "Domaine & e-mails : protection contre l'usurpation (SPF, DMARC, DKIM, MX) et sous-domaines visibles publiquement"
             },
             Category = "RESEAU",
             SubHeading = "Appareils & Analyse Web",
